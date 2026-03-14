@@ -27,15 +27,33 @@ jobs:
       - name: Expo prebuild (Android)
         run: npx expo prebuild --platform android --no-install
 
-      - name: Build debug APK
+      - name: Generate release keystore
+        run: |
+          keytool -genkey -v \
+            -keystore android/app/release.keystore \
+            -storepass pincer123 \
+            -alias pincerkey \
+            -keypass pincer123 \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=Pincer Mobile,O=Claw Works,C=CN"
+
+      - name: Build release APK (JS bundled)
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          KEYSTORE_FILE=release.keystore \
+          KEYSTORE_PASSWORD=pincer123 \
+          KEY_ALIAS=pincerkey \
+          KEY_PASSWORD=pincer123 \
+          ./gradlew assembleRelease --no-daemon \
+            -Pandroid.injected.signing.store.file=$(pwd)/app/release.keystore \
+            -Pandroid.injected.signing.store.password=pincer123 \
+            -Pandroid.injected.signing.key.alias=pincerkey \
+            -Pandroid.injected.signing.key.password=pincer123
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: pincer-mobile-debug
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: pincer-mobile-release
+          path: android/app/build/outputs/apk/release/app-release.apk
           retention-days: 30
