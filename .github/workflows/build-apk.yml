@@ -8,6 +8,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -41,19 +43,44 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
-          KEYSTORE_FILE=release.keystore \
-          KEYSTORE_PASSWORD=pincer123 \
-          KEY_ALIAS=pincerkey \
-          KEY_PASSWORD=pincer123 \
           ./gradlew assembleRelease --no-daemon \
             -Pandroid.injected.signing.store.file=$(pwd)/app/release.keystore \
             -Pandroid.injected.signing.store.password=pincer123 \
             -Pandroid.injected.signing.key.alias=pincerkey \
             -Pandroid.injected.signing.key.password=pincer123
 
-      - name: Upload APK
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(node -e "const a=require('./app.json');console.log(a.expo.version)")
+          SHORT_SHA=$(echo $GITHUB_SHA | cut -c1-7)
+          echo "version=v${VERSION}-${SHORT_SHA}" >> $GITHUB_OUTPUT
+          echo "apk_name=pincer-mobile-${VERSION}-${SHORT_SHA}.apk" >> $GITHUB_OUTPUT
+
+      - name: Rename APK
+        run: |
+          mv android/app/build/outputs/apk/release/app-release.apk \
+             android/app/build/outputs/apk/release/${{ steps.version.outputs.apk_name }}
+
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: pincer-mobile-release
-          path: android/app/build/outputs/apk/release/app-release.apk
-          retention-days: 30
+          path: android/app/build/outputs/apk/release/${{ steps.version.outputs.apk_name }}
+          retention-days: 7
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: Pincer Mobile ${{ steps.version.outputs.version }}
+          body: |
+            ## 📱 Android APK
+
+            下载 APK 安装到安卓手机，需要开启「允许安装未知来源应用」。
+
+            ### 变更
+            Commit: ${{ github.sha }}
+            ${{ github.event.head_commit.message }}
+          files: android/app/build/outputs/apk/release/${{ steps.version.outputs.apk_name }}
+          make_latest: true
