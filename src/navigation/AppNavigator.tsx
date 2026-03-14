@@ -2,11 +2,13 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 import TasksScreen from '../screens/TasksScreen';
 import TaskDetailScreen from '../screens/TaskDetailScreen';
 import RoomsScreen from '../screens/RoomsScreen';
 import RoomScreen from '../screens/RoomScreen';
 import ReportsScreen from '../screens/ReportsScreen';
+import ReportListScreen from '../screens/ReportListScreen';
 import ReportDetailScreen from '../screens/ReportDetailScreen';
 
 const Tab = createBottomTabNavigator();
@@ -34,7 +36,9 @@ function RoomsNav() {
 function ReportsNav() {
   return (
     <ReportsStack.Navigator>
-      <ReportsStack.Screen name="ReportsList" component={ReportsScreen} options={{ title: '日报' }} />
+      <ReportsStack.Screen name="ReportJobs" component={ReportsScreen} options={{ title: '日报任务' }} />
+      <ReportsStack.Screen name="ReportList" component={ReportListScreen}
+        options={({ route }: any) => ({ title: (route.params as any)?.jobName || '报告列表' })} />
       <ReportsStack.Screen name="ReportDetail" component={ReportDetailScreen} options={{ title: '报告详情' }} />
     </ReportsStack.Navigator>
   );
@@ -43,10 +47,23 @@ function ReportsNav() {
 export default function AppNavigator() {
   return (
     <NavigationContainer>
-      <Tab.Navigator screenOptions={{ headerShown: false }}>
-        <Tab.Screen name="Tasks" component={TasksNav} options={{ tabBarLabel: '任务 📋' }} />
-        <Tab.Screen name="Rooms" component={RoomsNav} options={{ tabBarLabel: '频道 💬' }} />
-        <Tab.Screen name="Reports" component={ReportsNav} options={{ tabBarLabel: '日报 📊' }} />
+      <Tab.Navigator
+        screenOptions={({ route }) => ({
+          headerShown: false,
+          tabBarActiveTintColor: '#6366f1',
+          tabBarInactiveTintColor: '#9ca3af',
+          tabBarIcon: ({ color, size }) => {
+            let iconName: keyof typeof Ionicons.glyphMap = 'home';
+            if (route.name === 'Tasks') iconName = 'checkmark-circle-outline';
+            else if (route.name === 'Rooms') iconName = 'chatbubble-outline';
+            else if (route.name === 'Reports') iconName = 'bar-chart-outline';
+            return <Ionicons name={iconName} size={size} color={color} />;
+          },
+        })}
+      >
+        <Tab.Screen name="Tasks" component={TasksNav} options={{ tabBarLabel: '任务' }} />
+        <Tab.Screen name="Rooms" component={RoomsNav} options={{ tabBarLabel: '频道' }} />
+        <Tab.Screen name="Reports" component={ReportsNav} options={{ tabBarLabel: '日报' }} />
       </Tab.Navigator>
     </NavigationContainer>
   );

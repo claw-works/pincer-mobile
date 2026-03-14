@@ -4,6 +4,7 @@ import {
   StyleSheet, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 import { fetchRoomMessages, postRoomMessage } from '../api';
 import { STORAGE_KEY_HUMAN_AGENT_ID } from '../api/client';
 import type { RoomMessage } from '../types';
@@ -35,10 +36,10 @@ export default function RoomScreen({ route }: any) {
       if (!lastTs.current) return;
       try {
         const newMsgs = await fetchRoomMessages(roomId, { since: lastTs.current, limit: 50 });
-        if (newMsgs.length === 0) return;
+        if (!newMsgs.length) return;
         setMessages(prev => [...prev, ...newMsgs]);
         lastTs.current = newMsgs[newMsgs.length - 1].created_at;
-      } catch (e) { /* silent */ }
+      } catch {}
     }, 3000);
     return () => clearInterval(interval);
   }, [roomId, loadInitial]);
@@ -50,28 +51,30 @@ export default function RoomScreen({ route }: any) {
       setMessages(prev => [...prev, msg]);
       lastTs.current = msg.created_at;
       setText('');
-    } catch (e: any) { console.error(e); }
+    } catch (e) { console.error(e); }
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex:1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 60}
+    >
       <FlatList
         ref={flatRef}
         data={messages}
         keyExtractor={m => m.id}
         onContentSizeChange={() => flatRef.current?.scrollToEnd({ animated: false })}
-        contentContainerStyle={{ padding: 12 }}
+        contentContainerStyle={{ padding: 12, paddingBottom: 8 }}
         renderItem={({ item }) => {
           const isMine = item.sender_agent_id === agentId;
           return (
             <View style={[styles.bubbleWrap, isMine ? styles.mineWrap : styles.theirsWrap]}>
-              {!isMine && (
-                <Text style={styles.sender}>{item.sender_agent_id?.slice(0, 8)}</Text>
-              )}
+              {!isMine && <Text style={styles.sender}>{item.sender_agent_id?.slice(0, 8)}</Text>}
               <View style={[styles.bubble, isMine ? styles.mineBubble : styles.theirsBubble]}>
                 <Text style={[styles.msgText, isMine && { color: '#fff' }]}>{item.content}</Text>
                 <Text style={[styles.time, isMine && { color: 'rgba(255,255,255,0.7)' }]}>
-                  {new Date(item.created_at).toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit' })}
+                  {new Date(item.created_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
                 </Text>
               </View>
             </View>
@@ -85,10 +88,10 @@ export default function RoomScreen({ route }: any) {
           onChangeText={setText}
           placeholder="发送消息..."
           multiline
-          onSubmitEditing={send}
+          maxLength={500}
         />
-        <TouchableOpacity style={styles.sendBtn} onPress={send}>
-          <Text style={styles.sendText}>发送</Text>
+        <TouchableOpacity style={[styles.sendBtn, !text.trim() && styles.sendBtnDisabled]} onPress={send} disabled={!text.trim()}>
+          <Ionicons name="send" size={18} color="#fff" />
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -99,14 +102,14 @@ const styles = StyleSheet.create({
   bubbleWrap: { marginBottom: 8 },
   mineWrap: { alignItems: 'flex-end' },
   theirsWrap: { alignItems: 'flex-start' },
-  bubble: { maxWidth:'80%', borderRadius:12, padding:10 },
-  mineBubble: { backgroundColor:'#3b82f6' },
-  theirsBubble: { backgroundColor:'#e5e7eb' },
-  sender: { fontSize:11, color:'#6b7280', marginBottom:2 },
-  msgText: { fontSize:14, color:'#1f2937' },
-  time: { fontSize:10, color:'#9ca3af', marginTop:4, alignSelf:'flex-end' },
-  inputRow: { flexDirection:'row', padding:8, borderTopWidth:1, borderTopColor:'#e5e7eb', backgroundColor:'#fff' },
-  input: { flex:1, borderWidth:1, borderColor:'#d1d5db', borderRadius:20, paddingHorizontal:14, paddingVertical:8, fontSize:14, marginRight:8, maxHeight:100 },
-  sendBtn: { backgroundColor:'#3b82f6', borderRadius:20, paddingHorizontal:16, justifyContent:'center' },
-  sendText: { color:'#fff', fontWeight:'700' },
+  bubble: { maxWidth: '80%', borderRadius: 14, padding: 10 },
+  mineBubble: { backgroundColor: '#6366f1' },
+  theirsBubble: { backgroundColor: '#e5e7eb' },
+  sender: { fontSize: 11, color: '#6b7280', marginBottom: 2 },
+  msgText: { fontSize: 14, color: '#1f2937' },
+  time: { fontSize: 10, color: '#9ca3af', marginTop: 4, alignSelf: 'flex-end' },
+  inputRow: { flexDirection: 'row', padding: 8, paddingHorizontal: 12, borderTopWidth: 1, borderTopColor: '#e5e7eb', backgroundColor: '#fff', alignItems: 'flex-end' },
+  input: { flex: 1, borderWidth: 1, borderColor: '#d1d5db', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, fontSize: 14, marginRight: 8, maxHeight: 100, backgroundColor: '#fafafa' },
+  sendBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#6366f1', justifyContent: 'center', alignItems: 'center' },
+  sendBtnDisabled: { backgroundColor: '#c7d2fe' },
 });
