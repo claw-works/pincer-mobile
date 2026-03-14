@@ -90,9 +90,8 @@ export async function fetchReportJobs(): Promise<ReportJob[]> {
   return api.get<ReportJob[]>('/report-jobs');
 }
 
-export async function fetchReports(jobId?: string): Promise<Report[]> {
-  const q = jobId ? `?job_id=${jobId}` : '';
-  return api.get<Report[]>(`/reports${q}`);
+export async function fetchReports(jobId: string): Promise<Report[]> {
+  return api.get<Report[]>(`/report-jobs/${jobId}/reports`);
 }
 
 export async function fetchRooms() { return api.get("/rooms"); }
