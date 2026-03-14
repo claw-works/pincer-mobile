@@ -24,7 +24,7 @@ export default function App() {
   }
 
   if (!loggedIn) {
-    return <LoginScreen onLogin={() => setLoggedIn(true)} />;
+    return <LoginScreen onLoggedIn={() => setLoggedIn(true)} />;
   }
 
   return <AppNavigator />;
