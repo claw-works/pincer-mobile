@@ -11,11 +11,14 @@ import ReportsScreen from '../screens/ReportsScreen';
 import ReportListScreen from '../screens/ReportListScreen';
 import ReportDetailScreen from '../screens/ReportDetailScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import DMListScreen from '../screens/DMListScreen';
+import DMChatScreen from '../screens/DMChatScreen';
 
 const Tab = createBottomTabNavigator();
 const TasksStack = createNativeStackNavigator();
 const RoomsStack = createNativeStackNavigator();
 const ReportsStack = createNativeStackNavigator();
+const DMStack = createNativeStackNavigator();
 
 interface AppNavigatorProps {
   onLogout: () => void;
@@ -41,11 +44,20 @@ function RoomsNav() {
 function ReportsNav() {
   return (
     <ReportsStack.Navigator>
-      <ReportsStack.Screen name="ReportJobs" component={ReportsScreen} options={{ title: '日报任务' }} />
+      <ReportsStack.Screen name="ReportJobs" component={ReportsScreen} options={{ title: '报告' }} />
       <ReportsStack.Screen name="ReportList" component={ReportListScreen}
         options={({ route }: any) => ({ title: (route.params as any)?.jobName || '报告列表' })} />
       <ReportsStack.Screen name="ReportDetail" component={ReportDetailScreen} options={{ title: '报告详情' }} />
     </ReportsStack.Navigator>
+  );
+}
+function DMNav() {
+  return (
+    <DMStack.Navigator>
+      <DMStack.Screen name="DMList" component={DMListScreen} options={{ title: '伙伴' }} />
+      <DMStack.Screen name="DMChat" component={DMChatScreen}
+        options={({ route }: any) => ({ title: (route.params as any)?.name || '私信' })} />
+    </DMStack.Navigator>
   );
 }
 
@@ -61,6 +73,7 @@ export default function AppNavigator({ onLogout }: AppNavigatorProps) {
             let iconName: keyof typeof Ionicons.glyphMap = 'home';
             if (route.name === 'Tasks') iconName = 'checkmark-circle-outline';
             else if (route.name === 'Rooms') iconName = 'chatbubble-outline';
+            else if (route.name === 'DM') iconName = 'people-outline';
             else if (route.name === 'Reports') iconName = 'bar-chart-outline';
             else if (route.name === 'Profile') iconName = 'person-outline';
             return <Ionicons name={iconName} size={size} color={color} />;
@@ -69,7 +82,8 @@ export default function AppNavigator({ onLogout }: AppNavigatorProps) {
       >
         <Tab.Screen name="Tasks" component={TasksNav} options={{ tabBarLabel: '任务' }} />
         <Tab.Screen name="Rooms" component={RoomsNav} options={{ tabBarLabel: '频道' }} />
-        <Tab.Screen name="Reports" component={ReportsNav} options={{ tabBarLabel: '日报' }} />
+        <Tab.Screen name="DM" component={DMNav} options={{ tabBarLabel: '伙伴' }} />
+        <Tab.Screen name="Reports" component={ReportsNav} options={{ tabBarLabel: '报告' }} />
         <Tab.Screen
           name="Profile"
           options={{ tabBarLabel: '我的', headerShown: true, title: '设置' }}

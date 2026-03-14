@@ -89,6 +89,11 @@ export default function RoomScreen({ route }: any) {
           placeholder="发送消息..."
           multiline
           maxLength={500}
+          blurOnSubmit={false}
+          returnKeyType="default"
+          onKeyPress={({ nativeEvent }) => {
+            // Prevent accidental sends — rely only on send button
+          }}
         />
         <TouchableOpacity style={[styles.sendBtn, !text.trim() && styles.sendBtnDisabled]} onPress={send} disabled={!text.trim()}>
           <Ionicons name="send" size={18} color="#fff" />

@@ -95,3 +95,24 @@ export async function fetchReports(jobId: string): Promise<Report[]> {
 }
 
 export async function fetchRooms() { return api.get("/rooms"); }
+
+// ── Agents ────────────────────────────────────────────────────────────────────
+export async function fetchAgents(): Promise<Agent[]> {
+  const data = await api.get<Agent[] | { agents: Agent[] }>('/agents');
+  return Array.isArray(data) ? data : (data as any).agents || [];
+}
+
+// ── DM / private messages ─────────────────────────────────────────────────────
+export async function fetchDMs(fromId: string, toId: string, params?: { limit?: number; before?: string }) {
+  const q = new URLSearchParams();
+  q.set('peer_id', toId);
+  if (params?.limit) q.set('limit', String(params.limit));
+  if (params?.before) q.set('before', params.before);
+  return api.get<{ id: string; from_agent_id: string; to_agent_id: string; payload: { text: string }; created_at: string }[]>(
+    `/agents/${fromId}/messages?${q.toString()}`
+  );
+}
+
+export async function sendDM(fromId: string, toId: string, text: string) {
+  return api.post('/messages/send', { from_agent_id: fromId, to_agent_id: toId, payload: { text } });
+}
