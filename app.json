@@ -1,18 +1,19 @@
 {
   "expo": {
-    "name": "pincer-mobile-init",
-    "slug": "pincer-mobile-init",
+    "name": "Pincer",
+    "slug": "pincer-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "run.apig.pincer"
     },
     "android": {
       "adaptiveIcon": {
@@ -22,7 +23,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.pincermobileinit"
+      "package": "run.apig.pincer"
     },
     "web": {
       "favicon": "./assets/favicon.png"
