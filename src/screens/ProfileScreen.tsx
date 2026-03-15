@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ActivityIndicator, Alert, ScrollView, KeyboardAvoidingView, Platform,
+  ActivityIndicator, Alert, ScrollView, KeyboardAvoidingView, Platform, Switch,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEY_HUMAN_AGENT_ID, STORAGE_KEY_API_KEY, clearConfig, getConfig } from '../api/client';
 import { registerHuman } from '../api';
+import { useTheme } from '../theme/ThemeContext';
 
 const STORAGE_KEY_HUMAN_NAME = 'pincerHumanName';
 
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export default function ProfileScreen({ onLogout }: Props) {
+  const { theme, colors, toggleTheme } = useTheme();
   const [humanId, setHumanId] = useState<string | null>(null);
   const [humanName, setHumanName] = useState<string>('');
   const [nameInput, setNameInput] = useState('');
@@ -150,6 +152,23 @@ export default function ProfileScreen({ onLogout }: Props) {
         </View>
 
         {/* Logout */}
+        {/* Theme toggle */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>🎨 外观</Text>
+          <View style={styles.themeRow}>
+            <View>
+              <Text style={styles.themeLabel}>{theme === 'dark' ? '🖥️ 极客暗黑模式' : '☀️ 明亮模式'}</Text>
+              <Text style={[styles.hint, { marginBottom: 0 }]}>{theme === 'dark' ? '黑绿配色，程序员最爱' : '清爽白色，日常使用'}</Text>
+            </View>
+            <Switch
+              value={theme === 'dark'}
+              onValueChange={toggleTheme}
+              trackColor={{ false: '#e5e7eb', true: '#00ff87' }}
+              thumbColor={theme === 'dark' ? '#0d1117' : '#ffffff'}
+            />
+          </View>
+        </View>
+
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
           <Text style={styles.logoutText}>退出登录</Text>
         </TouchableOpacity>
@@ -196,6 +215,8 @@ const styles = StyleSheet.create({
   registerBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
   unlinkBtn: { marginTop: 8, padding: 8 },
   unlinkText: { color: '#ef4444', fontSize: 13, textAlign: 'center' },
+  themeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  themeLabel: { fontSize: 15, fontWeight: '600', color: '#1f2937', marginBottom: 2 },
   logoutBtn: {
     borderWidth: 1, borderColor: '#fca5a5', borderRadius: 10, padding: 14,
     alignItems: 'center', marginTop: 8,
