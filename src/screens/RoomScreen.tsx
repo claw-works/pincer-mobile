@@ -11,6 +11,23 @@ import { STORAGE_KEY_HUMAN_AGENT_ID } from '../api/client';
 import { useAgents } from '../hooks/useAgents';
 import type { RoomMessage } from '../types';
 
+const CACHE_KEY = (roomId: string) => `pincerRoomMsgs_${roomId}`;
+const MAX_CACHE = 50;
+
+async function loadCache(roomId: string): Promise<RoomMessage[]> {
+  try {
+    const raw = await AsyncStorage.getItem(CACHE_KEY(roomId));
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+async function saveCache(roomId: string, msgs: RoomMessage[]) {
+  try {
+    const toSave = msgs.slice(-MAX_CACHE);
+    await AsyncStorage.setItem(CACHE_KEY(roomId), JSON.stringify(toSave));
+  } catch { /* ignore */ }
+}
+
 export default function RoomScreen({ route }: any) {
   const { id: roomId } = route.params;
   const [messages, setMessages] = useState<RoomMessage[]>([]);
@@ -33,17 +50,41 @@ export default function RoomScreen({ route }: any) {
   );
 
   const loadInitial = useCallback(async () => {
+    // 1. Show cached messages immediately (no blank screen)
+    const cached = await loadCache(roomId);
+    if (cached.length) {
+      setMessages(cached);
+      lastTs.current = cached[cached.length - 1].created_at;
+      setTimeout(() => flatRef.current?.scrollToEnd({ animated: false }), 50);
+    }
+
+    // 2. Fetch from server — if we have cache, fetch only since last message
     try {
-      const msgs = await fetchRoomMessages(roomId, { limit: 50 });
-      const sorted = [...msgs].reverse();
-      setMessages(sorted);
-      if (sorted.length) {
-        lastTs.current = sorted[sorted.length - 1].created_at;
-        AsyncStorage.setItem(
-          'pincerLastRoom_' + roomId,
-          JSON.stringify({ text: sorted[sorted.length - 1].content || '', time: sorted[sorted.length - 1].created_at })
-        ).catch(() => {});
-      }
+      const params = lastTs.current
+        ? { since: lastTs.current, limit: 50 }
+        : { limit: 50 };
+      const msgs = await fetchRoomMessages(roomId, params);
+
+      setMessages(prev => {
+        let merged: RoomMessage[];
+        if (prev.length === 0) {
+          // No cache — server returned full list (oldest first when using since, but reverse for initial)
+          merged = [...msgs].reverse();
+        } else {
+          // Merge new messages with cached
+          const ids = new Set(prev.map(m => m.id));
+          const fresh = msgs.filter(m => !ids.has(m.id));
+          merged = [...prev, ...fresh];
+        }
+        saveCache(roomId, merged);
+        if (merged.length) {
+          lastTs.current = merged[merged.length - 1].created_at;
+          // Cache last msg for MessagesScreen
+          AsyncStorage.setItem('pincerLastRoom_' + roomId, JSON.stringify({ text: merged[merged.length - 1].content || '', time: merged[merged.length - 1].created_at })).catch(() => {});
+        }
+        return merged;
+      });
+      setTimeout(() => flatRef.current?.scrollToEnd({ animated: false }), 100);
     } catch (e) { console.error(e); }
   }, [roomId]);
 
