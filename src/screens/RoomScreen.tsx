@@ -23,6 +23,9 @@ export default function RoomScreen({ route }: any) {
   const inputRef = useRef<TextInput>(null);
   const { agents, getName } = useAgents();
 
+  const AVATAR_COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444'];
+  const avatarColor = (name: string) => AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
+
   useFocusEffect(
     useCallback(() => {
       AsyncStorage.getItem(STORAGE_KEY_HUMAN_AGENT_ID).then(id => { if (id) setAgentId(id); });
@@ -159,9 +162,15 @@ export default function RoomScreen({ route }: any) {
                     style={styles.mentionItem}
                     onPress={() => insertMention(agent)}
                   >
-                    <Text style={styles.mentionAvatar}>
-                      {agent.id === '__all__' ? '📢' : agent.name.charAt(0).toUpperCase()}
-                    </Text>
+                    {agent.id === '__all__' ? (
+                      <View style={[styles.mentionAvatarCircle, { backgroundColor: '#6366f1' }]}>
+                        <Text style={{ fontSize: 14 }}>📢</Text>
+                      </View>
+                    ) : (
+                      <View style={[styles.mentionAvatarCircle, { backgroundColor: avatarColor(agent.name) }]}>
+                        <Text style={styles.mentionAvatarInitial}>{agent.name.charAt(0).toUpperCase()}</Text>
+                      </View>
+                    )}
                     <Text style={styles.mentionName}>
                       {agent.id === '__all__' ? 'all（全体）' : agent.name}
                     </Text>
@@ -218,7 +227,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#f3f4f6',
   },
-  mentionAvatar: { fontSize: 16, marginRight: 10, width: 24, textAlign: 'center' },
+  mentionAvatarCircle: {
+    width: 32, height: 32, borderRadius: 16,
+    justifyContent: 'center', alignItems: 'center', marginRight: 10,
+    shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 3, shadowOffset: { width: 0, height: 1 },
+  },
+  mentionAvatarInitial: { color: '#fff', fontSize: 14, fontWeight: '700' },
   mentionName: { fontSize: 14, color: '#1f2937', fontWeight: '500' },
   inputRow: {
     flexDirection: 'row', padding: 8, borderTopWidth: 1, borderTopColor: '#e5e7eb',
