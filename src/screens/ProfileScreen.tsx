@@ -5,8 +5,9 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEY_HUMAN_AGENT_ID, STORAGE_KEY_API_KEY, clearConfig, getConfig } from '../api/client';
-import { registerHuman } from '../api';
+import { registerHuman, fetchAgents } from '../api';
 import { useTheme } from '../theme/ThemeContext';
+import type { Agent } from '../types';
 import { useLang } from '../i18n/LangContext';
 
 const STORAGE_KEY_HUMAN_NAME = 'pincerHumanName';
@@ -25,14 +26,19 @@ export default function ProfileScreen({ onLogout }: Props) {
   const [registering, setRegistering] = useState(false);
   const [apiKey, setApiKey] = useState('');
   const [baseUrl, setBaseUrl] = useState('');
+  const [humanAgents, setHumanAgents] = useState<Agent[]>([]);
 
   useEffect(() => {
     Promise.all([
       AsyncStorage.getItem(STORAGE_KEY_HUMAN_AGENT_ID),
       AsyncStorage.getItem(STORAGE_KEY_HUMAN_NAME),
-    ]).then(([id, name]) => {
+      fetchAgents().catch(() => [] as Agent[]),
+    ]).then(([id, name, agents]) => {
       setHumanId(id);
       setHumanName(name || '');
+      // Show only human-type agents, filter out self if already bound
+      const humans = (agents as Agent[]).filter(a => a.type === 'human' && a.id !== id);
+      setHumanAgents(humans);
       const cfg = getConfig();
       setApiKey(cfg?.apiKey || '');
       setBaseUrl(cfg?.baseUrl || '');
@@ -130,6 +136,40 @@ export default function ProfileScreen({ onLogout }: Props) {
           ) : (
             <View>
               <Text style={styles.hint}>绑定人类身份后可以在手机上 Approve / Reject 任务</Text>
+
+              {/* Existing human agents to select from (a195f5ad) */}
+              {humanAgents.length > 0 && (
+                <View style={{ marginBottom: 12 }}>
+                  <Text style={[styles.label, { marginBottom: 8 }]}>选择已注册身份</Text>
+                  {humanAgents.map(agent => (
+                    <TouchableOpacity
+                      key={agent.id}
+                      style={styles.agentSelectRow}
+                      onPress={async () => {
+                        await AsyncStorage.setItem(STORAGE_KEY_HUMAN_AGENT_ID, agent.id);
+                        await AsyncStorage.setItem('pincerHumanName', agent.name || agent.id.slice(0, 8));
+                        setHumanId(agent.id);
+                        setHumanName(agent.name || agent.id.slice(0, 8));
+                      }}
+                    >
+                      <View style={styles.agentSelectAvatar}>
+                        <Text style={styles.agentSelectAvatarText}>{(agent.name || agent.id).charAt(0).toUpperCase()}</Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.agentSelectName}>{agent.name || agent.id.slice(0, 8)}</Text>
+                        <Text style={styles.agentSelectId} numberOfLines={1}>{agent.id.slice(0, 20)}…</Text>
+                      </View>
+                      {agent.status === 'online' && <View style={styles.onlineDot} />}
+                    </TouchableOpacity>
+                  ))}
+                  <View style={styles.divider}>
+                    <View style={styles.dividerLine} />
+                    <Text style={styles.dividerText}>或创建新身份</Text>
+                    <View style={styles.dividerLine} />
+                  </View>
+                </View>
+              )}
+
               <Text style={styles.label}>你的名字</Text>
               <TextInput
                 style={styles.input}
@@ -223,6 +263,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 10, fontSize: 14,
     backgroundColor: '#fafafa', marginBottom: 12, marginTop: 4,
   },
+  agentSelectRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb', marginBottom: 6, backgroundColor: '#fafafa' },
+  agentSelectAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#6366f1', justifyContent: 'center', alignItems: 'center' },
+  agentSelectAvatarText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  agentSelectName: { fontSize: 14, fontWeight: '600', color: '#1f2937' },
+  agentSelectId: { fontSize: 10, color: '#9ca3af', fontFamily: 'monospace' },
+  onlineDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#22c55e' },
+  divider: { flexDirection: 'row', alignItems: 'center', gap: 8, marginVertical: 10 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: '#e5e7eb' },
+  dividerText: { fontSize: 11, color: '#9ca3af' },
   registerBtn: {
     backgroundColor: '#6366f1', borderRadius: 8, padding: 13, alignItems: 'center',
   },
