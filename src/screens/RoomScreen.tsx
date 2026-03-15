@@ -3,11 +3,12 @@ import {
   View, Text, FlatList, TextInput, TouchableOpacity,
   StyleSheet, KeyboardAvoidingView, Platform, SafeAreaView,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchRoomMessages, postRoomMessage } from '../api';
 import { STORAGE_KEY_HUMAN_AGENT_ID } from '../api/client';
+import { useAgents } from '../hooks/useAgents';
 import type { RoomMessage } from '../types';
 
 export default function RoomScreen({ route }: any) {
@@ -17,18 +18,29 @@ export default function RoomScreen({ route }: any) {
   const [agentId, setAgentId] = useState('');
   const lastTs = useRef('');
   const flatRef = useRef<FlatList>(null);
-  const insets = useSafeAreaInsets();
+  const { getName } = useAgents();
 
-  useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY_HUMAN_AGENT_ID).then(id => { if (id) setAgentId(id); });
-  }, []);
+  // Reload agentId when screen comes into focus (e.g. after binding identity)
+  useFocusEffect(
+    useCallback(() => {
+      AsyncStorage.getItem(STORAGE_KEY_HUMAN_AGENT_ID).then(id => { if (id) setAgentId(id); });
+    }, [])
+  );
 
   const loadInitial = useCallback(async () => {
     try {
       const msgs = await fetchRoomMessages(roomId, { limit: 50 });
       const sorted = [...msgs].reverse();
       setMessages(sorted);
-      if (sorted.length) lastTs.current = sorted[sorted.length - 1].created_at;
+      if (sorted.length) {
+        lastTs.current = sorted[sorted.length - 1].created_at;
+        // Cache last message for MessagesScreen
+        const last = sorted[sorted.length - 1];
+        AsyncStorage.setItem(
+          'pincerLastRoom_' + roomId,
+          JSON.stringify({ text: last.content || '', time: last.created_at })
+        ).catch(() => {});
+      }
     } catch (e) { console.error(e); }
   }, [roomId]);
 
@@ -51,12 +63,14 @@ export default function RoomScreen({ route }: any) {
   }, [roomId, loadInitial]);
 
   const send = async () => {
-    if (!text.trim() || !agentId) return;
+    const t = text.trim();
+    if (!t || !agentId) return;
     try {
-      const msg = await postRoomMessage(roomId, agentId, text.trim());
+      const msg = await postRoomMessage(roomId, agentId, t);
       setMessages(prev => [...prev, msg]);
       lastTs.current = msg.created_at;
       setText('');
+      setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 100);
     } catch (e: any) { console.error(e); }
   };
 
@@ -76,9 +90,10 @@ export default function RoomScreen({ route }: any) {
           contentContainerStyle={{ padding: 12, paddingBottom: 8 }}
           renderItem={({ item }) => {
             const isMine = item.sender_agent_id === agentId;
+            const senderName = getName(item.sender_agent_id);
             return (
               <View style={[styles.bubbleWrap, isMine ? styles.mineWrap : styles.theirsWrap]}>
-                {!isMine && <Text style={styles.sender}>{item.sender_agent_id?.slice(0, 8)}</Text>}
+                {!isMine && <Text style={styles.sender}>{senderName}</Text>}
                 <View style={[styles.bubble, isMine ? styles.mineBubble : styles.theirsBubble]}>
                   <Text style={[styles.msgText, isMine && { color: '#fff' }]}>{item.content}</Text>
                   <Text style={[styles.time, isMine && { color: 'rgba(255,255,255,0.7)' }]}>
@@ -89,26 +104,32 @@ export default function RoomScreen({ route }: any) {
             );
           }}
         />
-        <View style={[styles.inputRow, { paddingBottom: Platform.OS === 'android' ? 12 : 8 }]}>
-          <TextInput
-            style={styles.input}
-            value={text}
-            onChangeText={setText}
-            placeholder="发送消息..."
-            placeholderTextColor="#9ca3af"
-            multiline
-            maxLength={500}
-            blurOnSubmit={false}
-            returnKeyType="default"
-          />
-          <TouchableOpacity
-            style={[styles.sendBtn, !text.trim() && styles.sendBtnDisabled]}
-            onPress={send}
-            disabled={!text.trim()}
-          >
-            <Ionicons name="send" size={18} color="#fff" />
-          </TouchableOpacity>
-        </View>
+        {!agentId ? (
+          <View style={styles.noIdentityBar}>
+            <Text style={styles.noIdentityText}>请在「我的」页面绑定人类身份后才能发送消息</Text>
+          </View>
+        ) : (
+          <View style={[styles.inputRow, { paddingBottom: Platform.OS === 'android' ? 12 : 8 }]}>
+            <TextInput
+              style={styles.input}
+              value={text}
+              onChangeText={setText}
+              placeholder="发送消息..."
+              placeholderTextColor="#9ca3af"
+              multiline
+              maxLength={500}
+              blurOnSubmit={false}
+              returnKeyType="default"
+            />
+            <TouchableOpacity
+              style={[styles.sendBtn, !text.trim() && styles.sendBtnDisabled]}
+              onPress={send}
+              disabled={!text.trim()}
+            >
+              <Ionicons name="send" size={18} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        )}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -118,7 +139,7 @@ const styles = StyleSheet.create({
   bubbleWrap: { marginBottom: 8 },
   mineWrap: { alignItems: 'flex-end' },
   theirsWrap: { alignItems: 'flex-start' },
-  sender: { fontSize: 11, color: '#6b7280', marginBottom: 2 },
+  sender: { fontSize: 11, color: '#6b7280', marginBottom: 2, fontWeight: '600' },
   bubble: { maxWidth: '80%', borderRadius: 16, padding: 10 },
   mineBubble: { backgroundColor: '#6366f1', borderBottomRightRadius: 4 },
   theirsBubble: { backgroundColor: '#e5e7eb', borderBottomLeftRadius: 4 },
@@ -135,4 +156,6 @@ const styles = StyleSheet.create({
   },
   sendBtn: { backgroundColor: '#6366f1', width: 42, height: 42, borderRadius: 21, justifyContent: 'center', alignItems: 'center' },
   sendBtnDisabled: { opacity: 0.4 },
+  noIdentityBar: { backgroundColor: '#fef3c7', padding: 12, borderTopWidth: 1, borderTopColor: '#fde68a', alignItems: 'center' },
+  noIdentityText: { fontSize: 13, color: '#92400e', textAlign: 'center' },
 });

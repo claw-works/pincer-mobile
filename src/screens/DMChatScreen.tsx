@@ -31,7 +31,12 @@ export default function DMChatScreen({ route }: any) {
   const load = useCallback(async () => {
     try {
       const msgs = await fetchDMs(myId, partnerId, { limit: 50 });
-      const sorted = [...msgs].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      // Filter: only messages between myId and partnerId
+      const filtered = msgs.filter(m =>
+        (m.from_agent_id === myId && m.to_agent_id === partnerId) ||
+        (m.from_agent_id === partnerId && m.to_agent_id === myId)
+      );
+      const sorted = [...filtered].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
       setMessages(sorted);
       // Cache last message for DMListScreen
       if (sorted.length) {
