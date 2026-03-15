@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEY_HUMAN_AGENT_ID, STORAGE_KEY_API_KEY, clearConfig, getConfig } from '../api/client';
 import { registerHuman } from '../api';
 import { useTheme } from '../theme/ThemeContext';
+import { useLang } from '../i18n/LangContext';
 
 const STORAGE_KEY_HUMAN_NAME = 'pincerHumanName';
 
@@ -16,6 +17,7 @@ interface Props {
 
 export default function ProfileScreen({ onLogout }: Props) {
   const { theme, colors, toggleTheme } = useTheme();
+  const { lang, toggleLang } = useLang();
   const [humanId, setHumanId] = useState<string | null>(null);
   const [humanName, setHumanName] = useState<string>('');
   const [nameInput, setNameInput] = useState('');
@@ -152,9 +154,9 @@ export default function ProfileScreen({ onLogout }: Props) {
         </View>
 
         {/* Logout */}
-        {/* Theme toggle */}
+        {/* Theme + Language toggles */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🎨 外观</Text>
+          <Text style={styles.sectionTitle}>🎨 外观 / Appearance</Text>
           <View style={styles.themeRow}>
             <View>
               <Text style={styles.themeLabel}>{theme === 'dark' ? '🖥️ 极客暗黑模式' : '☀️ 明亮模式'}</Text>
@@ -165,6 +167,18 @@ export default function ProfileScreen({ onLogout }: Props) {
               onValueChange={toggleTheme}
               trackColor={{ false: '#e5e7eb', true: '#00ff87' }}
               thumbColor={theme === 'dark' ? '#0d1117' : '#ffffff'}
+            />
+          </View>
+          <View style={[styles.themeRow, { marginTop: 12 }]}>
+            <View>
+              <Text style={styles.themeLabel}>🌐 语言 / Language</Text>
+              <Text style={[styles.hint, { marginBottom: 0 }]}>{lang === 'zh' ? '中文界面' : 'English interface'}</Text>
+            </View>
+            <Switch
+              value={lang === 'en'}
+              onValueChange={toggleLang}
+              trackColor={{ false: '#e5e7eb', true: '#6366f1' }}
+              thumbColor="#ffffff"
             />
           </View>
         </View>

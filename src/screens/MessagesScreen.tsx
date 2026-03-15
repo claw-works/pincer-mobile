@@ -11,6 +11,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { fetchAgents, fetchRooms } from '../api';
+import { displayRoomName } from '../utils/roomName';
 import { STORAGE_KEY_HUMAN_AGENT_ID } from '../api/client';
 import type { Agent } from '../types';
 
@@ -44,7 +45,7 @@ export default function MessagesScreen({ navigation }: any) {
       // Load rooms
       const roomData: any = await fetchRooms();
       const roomList: RoomItem[] = (Array.isArray(roomData) ? roomData : roomData.rooms || []).map((r: any) => ({
-        id: r.id, name: r.name || r.id,
+        id: r.id, name: displayRoomName(r.name, r.id),
       }));
       // Load cached last messages for rooms
       const roomsWithCache = await Promise.all(

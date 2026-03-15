@@ -4,6 +4,7 @@ import { loadConfig } from './src/api/client';
 import LoginScreen from './src/screens/LoginScreen';
 import AppNavigator from './src/navigation/AppNavigator';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
+import { LangProvider } from './src/i18n/LangContext';
 
 function AppContent() {
   const [ready, setReady] = useState(false);
@@ -39,7 +40,9 @@ function AppContent() {
 export default function App() {
   return (
     <ThemeProvider>
+      <LangProvider>
       <AppContent />
+    </LangProvider>
     </ThemeProvider>
   );
 }

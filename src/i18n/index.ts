@@ -1,0 +1,38 @@
+export type Lang = 'zh' | 'en';
+
+export const strings = {
+  zh: {
+    tasks: '任务', messages: '消息', reports: '报告', profile: '我的',
+    taskDetail: '任务详情', room: '频道', dm: '私信', partners: '伙伴',
+    reportList: '报告列表', reportDetail: '报告详情', settings: '设置',
+    send: '发送', connection: '🌐 连接信息', identity: '👤 人类身份',
+    appearance: '🎨 外观', language: '🌐 语言',
+    darkMode: '🖥️ 极客暗黑', lightMode: '☀️ 明亮',
+    geekDesc: '黑绿配色，程序员最爱', lightDesc: '清爽白色，日常使用',
+    logout: '退出登录', logoutConfirm: '确认退出？所有配置将清除。',
+    cancel: '取消', confirm: '确认',
+    bindIdentity: '绑定人类身份', bindDesc: '绑定后可 Approve/Reject 任务',
+    displayName: '你的名字', namePlaceholder: 'Cloudbeer',
+    server: '服务器', apiKey: 'API Key', verifiedBadge: '✓ 已认证',
+    unlinkIdentity: '解绑人类身份',
+    unclassified: '未分类', noTasks: '暂无任务', noMessages: '暂无消息',
+    all: '全部',
+  },
+  en: {
+    tasks: 'Tasks', messages: 'Messages', reports: 'Reports', profile: 'Me',
+    taskDetail: 'Task Detail', room: 'Room', dm: 'DM', partners: 'Partners',
+    reportList: 'Reports', reportDetail: 'Report', settings: 'Settings',
+    send: 'Send', connection: '🌐 Connection', identity: '👤 Identity',
+    appearance: '🎨 Appearance', language: '🌐 Language',
+    darkMode: '🖥️ Geek Dark', lightMode: '☀️ Light',
+    geekDesc: 'Black & green, dev style', lightDesc: 'Clean white, daily use',
+    logout: 'Log Out', logoutConfirm: 'Confirm logout? All config cleared.',
+    cancel: 'Cancel', confirm: 'Confirm',
+    bindIdentity: 'Bind Identity', bindDesc: 'Required to Approve/Reject tasks',
+    displayName: 'Your Name', namePlaceholder: 'Cloudbeer',
+    server: 'Server', apiKey: 'API Key', verifiedBadge: '✓ Verified',
+    unlinkIdentity: 'Unlink Identity',
+    unclassified: 'Unclassified', noTasks: 'No tasks', noMessages: 'No messages',
+    all: 'All',
+  },
+} as const;

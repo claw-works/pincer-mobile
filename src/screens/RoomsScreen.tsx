@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { FlatList, TouchableOpacity, Text, View, StyleSheet, ActivityIndicator } from 'react-native';
 import { fetchRooms } from '../api';
+import { displayRoomName } from '../utils/roomName';
 
 export default function RoomsScreen({ navigation }: any) {
   const [rooms, setRooms] = useState<{ id: string; name: string }[]>([]);
@@ -29,7 +30,7 @@ export default function RoomsScreen({ navigation }: any) {
       renderItem={({ item }) => (
         <TouchableOpacity
           style={styles.row}
-          onPress={() => navigation.navigate('Room', { id: item.id, name: item.name || item.id })}>
+          onPress={() => navigation.navigate('Room', { id: item.id, name: displayRoomName(item.name, item.id) })}>
           <Text style={styles.icon}>💬</Text>
           <View style={{ flex: 1 }}>
             <Text style={styles.name}>{item.name || item.id}</Text>
