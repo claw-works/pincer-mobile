@@ -14,6 +14,7 @@ import ReportListScreen from '../screens/ReportListScreen';
 import ReportDetailScreen from '../screens/ReportDetailScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import { useTheme } from '../theme/ThemeContext';
+import { useLang } from '../i18n/LangContext';
 
 const Tab = createBottomTabNavigator();
 const TasksStack = createNativeStackNavigator();
@@ -40,9 +41,9 @@ function TasksNav() {
   return (
     <TasksStack.Navigator>
       <TasksStack.Screen name="TasksList" component={TasksScreen}
-        options={{ headerTitle: () => <HeaderTitle title="任务" /> }} />
+        options={{ headerTitle: () => <HeaderTitle title={t.tasks} /> }} />
       <TasksStack.Screen name="TaskDetail" component={TaskDetailScreen}
-        options={{ headerTitle: () => <HeaderTitle title="任务详情" /> }} />
+        options={{ headerTitle: () => <HeaderTitle title={t.taskDetail} /> }} />
     </TasksStack.Navigator>
   );
 }
@@ -51,7 +52,7 @@ function MessagesNav() {
   return (
     <MessagesStack.Navigator>
       <MessagesStack.Screen name="MessagesList" component={MessagesScreen}
-        options={{ headerTitle: () => <HeaderTitle title="消息" /> }} />
+        options={{ headerTitle: () => <HeaderTitle title={t.messages} /> }} />
       <MessagesStack.Screen name="Room" component={RoomScreen}
         options={({ route }: any) => ({
           headerTitle: () => <HeaderTitle title={(route.params as any)?.name || '频道'} />,
@@ -68,19 +69,20 @@ function ReportsNav() {
   return (
     <ReportsStack.Navigator>
       <ReportsStack.Screen name="ReportJobs" component={ReportsScreen}
-        options={{ headerTitle: () => <HeaderTitle title="报告" /> }} />
+        options={{ headerTitle: () => <HeaderTitle title={t.reports} /> }} />
       <ReportsStack.Screen name="ReportList" component={ReportListScreen}
         options={({ route }: any) => ({
           headerTitle: () => <HeaderTitle title={(route.params as any)?.jobName || '报告列表'} />,
         })} />
       <ReportsStack.Screen name="ReportDetail" component={ReportDetailScreen}
-        options={{ headerTitle: () => <HeaderTitle title="报告详情" /> }} />
+        options={{ headerTitle: () => <HeaderTitle title={t.reportDetail} /> }} />
     </ReportsStack.Navigator>
   );
 }
 
 export default function AppNavigator({ onLogout }: AppNavigatorProps) {
   const { colors, theme } = useTheme();
+  const { t } = useLang();
 
   const navTheme = {
     ...(theme === 'dark' ? DarkTheme : DefaultTheme),
@@ -112,12 +114,12 @@ export default function AppNavigator({ onLogout }: AppNavigatorProps) {
           },
         })}
       >
-        <Tab.Screen name="Tasks" component={TasksNav} options={{ tabBarLabel: '任务' }} />
-        <Tab.Screen name="Messages" component={MessagesNav} options={{ tabBarLabel: '消息' }} />
-        <Tab.Screen name="Reports" component={ReportsNav} options={{ tabBarLabel: '报告' }} />
+        <Tab.Screen name="Tasks" component={TasksNav} options={{ tabBarLabel: t.tasks }} />
+        <Tab.Screen name="Messages" component={MessagesNav} options={{ tabBarLabel: t.messages }} />
+        <Tab.Screen name="Reports" component={ReportsNav} options={{ tabBarLabel: t.reports }} />
         <Tab.Screen
           name="Profile"
-          options={{ tabBarLabel: '我的', headerShown: true, headerTitle: () => <HeaderTitle title="设置" /> }}
+          options={{ tabBarLabel: t.profile, headerShown: true, headerTitle: () => <HeaderTitle title={t.settings} /> }}
         >
           {() => <ProfileScreen onLogout={onLogout} />}
         </Tab.Screen>
