@@ -7,12 +7,18 @@ export default function RoomsScreen({ navigation }: any) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchRooms()
-      .then(r => { setRooms(r); setLoading(false); })
-      .catch(() => setLoading(false));
+    fetchRooms().then((r: any) => {
+      const list = Array.isArray(r) ? r : (r.rooms || []);
+      setRooms(list);
+      // Auto-navigate if only one room
+      if (list.length === 1) {
+        navigation.replace('Room', { id: list[0].id, name: list[0].name || '频道' });
+      }
+      setLoading(false);
+    }).catch(() => setLoading(false));
   }, []);
 
-  if (loading) return <ActivityIndicator style={{ flex:1 }} size="large" />;
+  if (loading) return <ActivityIndicator style={{ flex: 1 }} size="large" color="#6366f1" />;
 
   return (
     <FlatList
@@ -23,9 +29,13 @@ export default function RoomsScreen({ navigation }: any) {
       renderItem={({ item }) => (
         <TouchableOpacity
           style={styles.row}
-          onPress={() => navigation.navigate('Room', { id: item.id, name: item.name })}>
+          onPress={() => navigation.navigate('Room', { id: item.id, name: item.name || item.id })}>
           <Text style={styles.icon}>💬</Text>
-          <Text style={styles.name}>{item.name || item.id}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.name}>{item.name || item.id}</Text>
+            <Text style={styles.sub}>点击进入频道</Text>
+          </View>
+          <Text style={styles.chevron}>›</Text>
         </TouchableOpacity>
       )}
     />
@@ -33,8 +43,10 @@ export default function RoomsScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection:'row', alignItems:'center', backgroundColor:'#fff', borderRadius:8, padding:14, marginBottom:8, elevation:1 },
-  icon: { fontSize:20, marginRight:12 },
-  name: { fontSize:15, fontWeight:'600', color:'#1f2937' },
-  empty: { textAlign:'center', color:'#9ca3af', marginTop:40 },
+  row: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 10, padding: 14, marginBottom: 8, elevation: 1, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4 },
+  icon: { fontSize: 22, marginRight: 12 },
+  name: { fontSize: 15, fontWeight: '600', color: '#1f2937' },
+  sub: { fontSize: 12, color: '#9ca3af', marginTop: 2 },
+  chevron: { fontSize: 18, color: '#d1d5db' },
+  empty: { textAlign: 'center', color: '#9ca3af', marginTop: 40 },
 });

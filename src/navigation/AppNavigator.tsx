@@ -1,4 +1,5 @@
 import React from 'react';
+import { View, Image, Text, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -24,39 +25,64 @@ interface AppNavigatorProps {
   onLogout: () => void;
 }
 
+// Shared header title with Pincer logo
+const HeaderTitle = ({ title }: { title: string }) => (
+  <View style={headerStyles.container}>
+    <Image source={require('../../assets/icon.png')} style={headerStyles.logo} />
+    <Text style={headerStyles.title}>{title}</Text>
+  </View>
+);
+const headerStyles = StyleSheet.create({
+  container: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  logo: { width: 24, height: 24, borderRadius: 5 },
+  title: { fontSize: 17, fontWeight: '700', color: '#1f2937' },
+});
+
 function TasksNav() {
   return (
     <TasksStack.Navigator>
-      <TasksStack.Screen name="TasksList" component={TasksScreen} options={{ title: '任务' }} />
-      <TasksStack.Screen name="TaskDetail" component={TaskDetailScreen} options={{ title: '任务详情' }} />
+      <TasksStack.Screen name="TasksList" component={TasksScreen}
+        options={{ headerTitle: () => <HeaderTitle title="任务" /> }} />
+      <TasksStack.Screen name="TaskDetail" component={TaskDetailScreen}
+        options={{ headerTitle: () => <HeaderTitle title="任务详情" /> }} />
     </TasksStack.Navigator>
   );
 }
 function RoomsNav() {
   return (
     <RoomsStack.Navigator>
-      <RoomsStack.Screen name="RoomsList" component={RoomsScreen} options={{ title: '频道' }} />
+      <RoomsStack.Screen name="RoomsList" component={RoomsScreen}
+        options={{ headerTitle: () => <HeaderTitle title="频道" /> }} />
       <RoomsStack.Screen name="Room" component={RoomScreen}
-        options={({ route }: any) => ({ title: (route.params as any)?.name || '频道' })} />
+        options={({ route }: any) => ({
+          headerTitle: () => <HeaderTitle title={(route.params as any)?.name || '频道'} />,
+        })} />
     </RoomsStack.Navigator>
   );
 }
 function ReportsNav() {
   return (
     <ReportsStack.Navigator>
-      <ReportsStack.Screen name="ReportJobs" component={ReportsScreen} options={{ title: '报告' }} />
+      <ReportsStack.Screen name="ReportJobs" component={ReportsScreen}
+        options={{ headerTitle: () => <HeaderTitle title="报告" /> }} />
       <ReportsStack.Screen name="ReportList" component={ReportListScreen}
-        options={({ route }: any) => ({ title: (route.params as any)?.jobName || '报告列表' })} />
-      <ReportsStack.Screen name="ReportDetail" component={ReportDetailScreen} options={{ title: '报告详情' }} />
+        options={({ route }: any) => ({
+          headerTitle: () => <HeaderTitle title={(route.params as any)?.jobName || '报告列表'} />,
+        })} />
+      <ReportsStack.Screen name="ReportDetail" component={ReportDetailScreen}
+        options={{ headerTitle: () => <HeaderTitle title="报告详情" /> }} />
     </ReportsStack.Navigator>
   );
 }
 function DMNav() {
   return (
     <DMStack.Navigator>
-      <DMStack.Screen name="DMList" component={DMListScreen} options={{ title: '伙伴' }} />
+      <DMStack.Screen name="DMList" component={DMListScreen}
+        options={{ headerTitle: () => <HeaderTitle title="伙伴" /> }} />
       <DMStack.Screen name="DMChat" component={DMChatScreen}
-        options={({ route }: any) => ({ title: (route.params as any)?.name || '私信' })} />
+        options={({ route }: any) => ({
+          headerTitle: () => <HeaderTitle title={(route.params as any)?.name || '私信'} />,
+        })} />
     </DMStack.Navigator>
   );
 }
@@ -86,7 +112,7 @@ export default function AppNavigator({ onLogout }: AppNavigatorProps) {
         <Tab.Screen name="Reports" component={ReportsNav} options={{ tabBarLabel: '报告' }} />
         <Tab.Screen
           name="Profile"
-          options={{ tabBarLabel: '我的', headerShown: true, title: '设置' }}
+          options={{ tabBarLabel: '我的', headerShown: true, headerTitle: () => <HeaderTitle title="设置" /> }}
         >
           {() => <ProfileScreen onLogout={onLogout} />}
         </Tab.Screen>

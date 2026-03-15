@@ -3,6 +3,7 @@ import {
   SectionList, TouchableOpacity, Text, View, StyleSheet,
   RefreshControl, ActivityIndicator,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { fetchTasks, fetchProjects } from '../api';
 import type { Task } from '../types';
 
@@ -55,6 +56,13 @@ export default function TasksScreen({ navigation }: any) {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // Reload when navigating back from TaskDetail (e.g. after approve/reject)
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
 
   const toggle = (key: string) => setCollapsed(prev => {
     const next = new Set(prev);

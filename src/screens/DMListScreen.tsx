@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
   ActivityIndicator, RefreshControl,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { fetchAgents, fetchDMs } from '../api';
+import { useFocusEffect } from '@react-navigation/native';
+import { fetchAgents } from '../api';
 import { STORAGE_KEY_HUMAN_AGENT_ID } from '../api/client';
 import type { Agent } from '../types';
 
@@ -21,12 +22,21 @@ export default function DMListScreen({ navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const load = async (selfId: string) => {
+  const load = useCallback(async () => {
+    const selfId = await AsyncStorage.getItem(STORAGE_KEY_HUMAN_AGENT_ID);
+    setMyId(selfId);
+
+    if (!selfId) {
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
+
     try {
       const agents = await fetchAgents();
+      // Show all agents except self
       const others = agents.filter(a => a.id !== selfId);
 
-      // For each agent, load cached last message from AsyncStorage
       const withLast = await Promise.all(
         others.map(async (a) => {
           const cached = await AsyncStorage.getItem(STORAGE_KEY_LAST_DM + a.id);
@@ -37,19 +47,26 @@ export default function DMListScreen({ navigation }: any) {
           return { ...a };
         })
       );
+      // Sort: agents with recent messages first
+      withLast.sort((a, b) => {
+        if (a.lastTime && b.lastTime) return new Date(b.lastTime).getTime() - new Date(a.lastTime).getTime();
+        if (a.lastTime) return -1;
+        if (b.lastTime) return 1;
+        return 0;
+      });
       setPartners(withLast);
     } catch (e) { console.error(e); }
     setLoading(false);
     setRefreshing(false);
-  };
-
-  useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY_HUMAN_AGENT_ID).then(id => {
-      setMyId(id);
-      if (id) load(id);
-      else { setLoading(false); }
-    });
   }, []);
+
+  // Re-check myId every time this screen gets focus (e.g. after binding identity)
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      load();
+    }, [load])
+  );
 
   const formatTime = (iso?: string) => {
     if (!iso) return '';
@@ -68,6 +85,12 @@ export default function DMListScreen({ navigation }: any) {
       <View style={styles.empty}>
         <Text style={styles.emptyIcon}>👤</Text>
         <Text style={styles.emptyText}>请先在「我的」页面绑定人类身份{'\n'}才能发送私信</Text>
+        <TouchableOpacity
+          style={styles.bindBtn}
+          onPress={() => navigation.navigate('Profile')}
+        >
+          <Text style={styles.bindBtnText}>去绑定</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -76,18 +99,26 @@ export default function DMListScreen({ navigation }: any) {
     <FlatList
       data={partners}
       keyExtractor={a => a.id}
-      contentContainerStyle={{ paddingVertical: 4 }}
+      contentContainerStyle={partners.length === 0 ? { flex: 1 } : { paddingVertical: 4 }}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(myId); }} />
+        <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} />
       }
-      ListEmptyComponent={<Text style={{ textAlign: 'center', color: '#9ca3af', marginTop: 60 }}>暂无伙伴</Text>}
+      ListEmptyComponent={
+        <View style={styles.empty}>
+          <Text style={{ color: '#9ca3af', fontSize: 14 }}>暂无伙伴</Text>
+        </View>
+      }
       renderItem={({ item }) => {
         const initial = (item.name || item.id).charAt(0).toUpperCase();
         const isAgent = item.type !== 'human';
         return (
           <TouchableOpacity
             style={styles.row}
-            onPress={() => navigation.navigate('DMChat', { partnerId: item.id, name: item.name || item.id.slice(0, 8), myId })}
+            onPress={() => navigation.navigate('DMChat', {
+              partnerId: item.id,
+              name: item.name || item.id.slice(0, 8),
+              myId,
+            })}
           >
             <View style={[styles.avatar, isAgent ? styles.agentAvatar : styles.humanAvatar]}>
               <Text style={styles.avatarText}>{initial}</Text>
@@ -102,6 +133,7 @@ export default function DMListScreen({ navigation }: any) {
                 {item.lastMessage || (isAgent ? '🤖 AI 助手' : '👤 人类')}
               </Text>
             </View>
+            <Text style={styles.chevron}>›</Text>
           </TouchableOpacity>
         );
       }}
@@ -126,7 +158,10 @@ const styles = StyleSheet.create({
   name: { fontSize: 15, fontWeight: '600', color: '#1f2937' },
   time: { fontSize: 12, color: '#9ca3af' },
   lastMsg: { fontSize: 13, color: '#9ca3af', marginTop: 2 },
+  chevron: { fontSize: 18, color: '#d1d5db', marginLeft: 4 },
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },
   emptyIcon: { fontSize: 48, marginBottom: 16 },
-  emptyText: { fontSize: 15, color: '#9ca3af', textAlign: 'center', lineHeight: 24 },
+  emptyText: { fontSize: 15, color: '#9ca3af', textAlign: 'center', lineHeight: 24, marginBottom: 20 },
+  bindBtn: { backgroundColor: '#6366f1', borderRadius: 8, paddingHorizontal: 24, paddingVertical: 10 },
+  bindBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
 });
