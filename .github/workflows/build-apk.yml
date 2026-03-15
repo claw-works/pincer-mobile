@@ -36,9 +36,16 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon
 
-      - name: Upload APK
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: pincer-mobile-${{ github.ref_name }}
           path: android/app/build/outputs/apk/release/*.apk
           retention-days: 30
+
+      - name: Create GitHub Release and upload APK
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: android/app/build/outputs/apk/release/*.apk
+          generate_release_notes: true
