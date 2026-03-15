@@ -2,7 +2,8 @@ name: Build Android APK
 
 on:
   push:
-    branches: [main]
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 jobs:
@@ -29,58 +30,15 @@ jobs:
       - name: Expo prebuild (Android)
         run: npx expo prebuild --platform android --no-install
 
-      - name: Generate release keystore
-        run: |
-          keytool -genkey -v \
-            -keystore android/app/release.keystore \
-            -storepass pincer123 \
-            -alias pincerkey \
-            -keypass pincer123 \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -dname "CN=Pincer Mobile,O=Claw Works,C=CN"
-
-      - name: Build release APK (JS bundled)
+      - name: Build APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon \
-            -Pandroid.injected.signing.store.file=$(pwd)/app/release.keystore \
-            -Pandroid.injected.signing.store.password=pincer123 \
-            -Pandroid.injected.signing.key.alias=pincerkey \
-            -Pandroid.injected.signing.key.password=pincer123
+          ./gradlew assembleRelease --no-daemon
 
-      - name: Get version
-        id: version
-        run: |
-          VERSION=$(node -e "const a=require('./app.json');console.log(a.expo.version)")
-          SHORT_SHA=$(echo $GITHUB_SHA | cut -c1-7)
-          echo "version=v${VERSION}-${SHORT_SHA}" >> $GITHUB_OUTPUT
-          echo "apk_name=pincer-mobile-${VERSION}-${SHORT_SHA}.apk" >> $GITHUB_OUTPUT
-
-      - name: Rename APK
-        run: |
-          mv android/app/build/outputs/apk/release/app-release.apk \
-             android/app/build/outputs/apk/release/${{ steps.version.outputs.apk_name }}
-
-      - name: Upload artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: pincer-mobile-release
-          path: android/app/build/outputs/apk/release/${{ steps.version.outputs.apk_name }}
-          retention-days: 7
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.version.outputs.version }}
-          name: Pincer Mobile ${{ steps.version.outputs.version }}
-          body: |
-            ## 📱 Android APK
-
-            下载 APK 安装到安卓手机，需要开启「允许安装未知来源应用」。
-
-            ### 变更
-            Commit: ${{ github.sha }}
-            ${{ github.event.head_commit.message }}
-          files: android/app/build/outputs/apk/release/${{ steps.version.outputs.apk_name }}
-          make_latest: true
+          name: pincer-mobile-${{ github.ref_name }}
+          path: android/app/build/outputs/apk/release/*.apk
+          retention-days: 30
