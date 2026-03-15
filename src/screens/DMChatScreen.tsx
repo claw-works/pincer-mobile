@@ -59,16 +59,33 @@ export default function DMChatScreen({ route }: any) {
     const t = text.trim();
     if (!t || sending) return;
     setSending(true);
+    // Optimistic update: show message immediately
+    const optimisticMsg: DMsg = {
+      id: `opt_${Date.now()}`,
+      from_agent_id: myId,
+      to_agent_id: partnerId,
+      payload: { text: t },
+      created_at: new Date().toISOString(),
+    };
+    setMessages(prev => [...prev, optimisticMsg]);
+    setText('');
+    setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 50);
     try {
-      await sendDM(myId, partnerId, t);
-      setText('');
+      const sent = await sendDM(myId, partnerId, t);
+      // Replace optimistic with real message if server returns it
+      if (sent && (sent as any).id) {
+        setMessages(prev => prev.map(m => m.id === optimisticMsg.id ? { ...optimisticMsg, id: (sent as any).id } : m));
+      }
       // Cache last message
       await AsyncStorage.setItem(
         STORAGE_KEY_LAST_DM + partnerId,
         JSON.stringify({ text: t, time: new Date().toISOString() })
       );
-      await load();
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      // Remove optimistic message on failure
+      setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
+      console.error(e);
+    }
     setSending(false);
   };
 
