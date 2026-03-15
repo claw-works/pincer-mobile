@@ -16,11 +16,13 @@ export default function RoomScreen({ route }: any) {
   const [messages, setMessages] = useState<RoomMessage[]>([]);
   const [text, setText] = useState('');
   const [agentId, setAgentId] = useState('');
+  const [mentionQuery, setMentionQuery] = useState('');   // '' = no menu
+  const [mentionSuggestions, setMentionSuggestions] = useState<{ id: string; name: string }[]>([]);
   const lastTs = useRef('');
   const flatRef = useRef<FlatList>(null);
-  const { getName } = useAgents();
+  const inputRef = useRef<TextInput>(null);
+  const { agents, getName } = useAgents();
 
-  // Reload agentId when screen comes into focus (e.g. after binding identity)
   useFocusEffect(
     useCallback(() => {
       AsyncStorage.getItem(STORAGE_KEY_HUMAN_AGENT_ID).then(id => { if (id) setAgentId(id); });
@@ -34,11 +36,9 @@ export default function RoomScreen({ route }: any) {
       setMessages(sorted);
       if (sorted.length) {
         lastTs.current = sorted[sorted.length - 1].created_at;
-        // Cache last message for MessagesScreen
-        const last = sorted[sorted.length - 1];
         AsyncStorage.setItem(
           'pincerLastRoom_' + roomId,
-          JSON.stringify({ text: last.content || '', time: last.created_at })
+          JSON.stringify({ text: sorted[sorted.length - 1].content || '', time: sorted[sorted.length - 1].created_at })
         ).catch(() => {});
       }
     } catch (e) { console.error(e); }
@@ -62,6 +62,44 @@ export default function RoomScreen({ route }: any) {
     return () => clearInterval(interval);
   }, [roomId, loadInitial]);
 
+  // Parse @ mentions as user types
+  const handleTextChange = (val: string) => {
+    setText(val);
+    // Find the last @ in the text
+    const atIdx = val.lastIndexOf('@');
+    if (atIdx >= 0) {
+      const query = val.slice(atIdx + 1);
+      // Only show if no space after @
+      if (!query.includes(' ') && !query.includes('\n')) {
+        setMentionQuery(query);
+        const q = query.toLowerCase();
+        // Add @all option + agents filtered by query
+        const allOption = { id: '__all__', name: 'all' };
+        const filtered = agents
+          .filter(a => a.name?.toLowerCase().includes(q) || 'all'.includes(q))
+          .map(a => ({ id: a.id, name: a.name || a.id.slice(0, 8) }));
+        const suggestions = q === '' || 'all'.startsWith(q)
+          ? [allOption, ...filtered]
+          : filtered;
+        setMentionSuggestions(suggestions.slice(0, 6));
+        return;
+      }
+    }
+    setMentionQuery('');
+    setMentionSuggestions([]);
+  };
+
+  const insertMention = (agent: { id: string; name: string }) => {
+    const atIdx = text.lastIndexOf('@');
+    const before = text.slice(0, atIdx);
+    const mention = agent.id === '__all__' ? '@all' : `@${agent.name}`;
+    const newText = before + mention + ' ';
+    setText(newText);
+    setMentionSuggestions([]);
+    setMentionQuery('');
+    inputRef.current?.focus();
+  };
+
   const send = async () => {
     const t = text.trim();
     if (!t || !agentId) return;
@@ -70,6 +108,7 @@ export default function RoomScreen({ route }: any) {
       setMessages(prev => [...prev, msg]);
       lastTs.current = msg.created_at;
       setText('');
+      setMentionSuggestions([]);
       setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 100);
     } catch (e: any) { console.error(e); }
   };
@@ -104,30 +143,54 @@ export default function RoomScreen({ route }: any) {
             );
           }}
         />
+
         {!agentId ? (
           <View style={styles.noIdentityBar}>
             <Text style={styles.noIdentityText}>请在「我的」页面绑定人类身份后才能发送消息</Text>
           </View>
         ) : (
-          <View style={[styles.inputRow, { paddingBottom: Platform.OS === 'android' ? 12 : 8 }]}>
-            <TextInput
-              style={styles.input}
-              value={text}
-              onChangeText={setText}
-              placeholder="发送消息..."
-              placeholderTextColor="#9ca3af"
-              multiline
-              maxLength={500}
-              blurOnSubmit={false}
-              returnKeyType="default"
-            />
-            <TouchableOpacity
-              style={[styles.sendBtn, !text.trim() && styles.sendBtnDisabled]}
-              onPress={send}
-              disabled={!text.trim()}
-            >
-              <Ionicons name="send" size={18} color="#fff" />
-            </TouchableOpacity>
+          <View>
+            {/* @ mention autocomplete */}
+            {mentionSuggestions.length > 0 && (
+              <View style={styles.mentionPanel}>
+                {mentionSuggestions.map(agent => (
+                  <TouchableOpacity
+                    key={agent.id}
+                    style={styles.mentionItem}
+                    onPress={() => insertMention(agent)}
+                  >
+                    <Text style={styles.mentionAvatar}>
+                      {agent.id === '__all__' ? '📢' : agent.name.charAt(0).toUpperCase()}
+                    </Text>
+                    <Text style={styles.mentionName}>
+                      {agent.id === '__all__' ? 'all（全体）' : agent.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            <View style={[styles.inputRow, { paddingBottom: Platform.OS === 'android' ? 12 : 8 }]}>
+              <TextInput
+                ref={inputRef}
+                style={styles.input}
+                value={text}
+                onChangeText={handleTextChange}
+                placeholder="发送消息... @ 联系人"
+                placeholderTextColor="#9ca3af"
+                multiline
+                maxLength={500}
+                blurOnSubmit={false}
+                returnKeyType="default"
+              />
+              <TouchableOpacity
+                style={[styles.sendBtn, !text.trim() && styles.sendBtnDisabled]}
+                onPress={send}
+                disabled={!text.trim()}
+              >
+                <Ionicons name="send" size={18} color="#fff" />
+              </TouchableOpacity>
+            </View>
           </View>
         )}
       </KeyboardAvoidingView>
@@ -145,6 +208,18 @@ const styles = StyleSheet.create({
   theirsBubble: { backgroundColor: '#e5e7eb', borderBottomLeftRadius: 4 },
   msgText: { fontSize: 14, color: '#1f2937', lineHeight: 20 },
   time: { fontSize: 10, color: '#9ca3af', marginTop: 4, alignSelf: 'flex-end' },
+  mentionPanel: {
+    backgroundColor: '#fff',
+    borderTopWidth: 1, borderTopColor: '#e5e7eb',
+    maxHeight: 200,
+  },
+  mentionItem: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 16, paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#f3f4f6',
+  },
+  mentionAvatar: { fontSize: 16, marginRight: 10, width: 24, textAlign: 'center' },
+  mentionName: { fontSize: 14, color: '#1f2937', fontWeight: '500' },
   inputRow: {
     flexDirection: 'row', padding: 8, borderTopWidth: 1, borderTopColor: '#e5e7eb',
     backgroundColor: '#fff', alignItems: 'flex-end',
