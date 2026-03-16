@@ -25,16 +25,19 @@ interface AppNavigatorProps {
   onLogout: () => void;
 }
 
-const HeaderTitle = ({ title }: { title: string }) => (
-  <View style={hStyles.container}>
-    <Image source={require('../../assets/icon.png')} style={hStyles.logo} />
-    <Text style={hStyles.title}>{title}</Text>
-  </View>
-);
+function HeaderTitle({ title }: { title: string }) {
+  const { colors } = useTheme();
+  return (
+    <View style={hStyles.container}>
+      <Image source={require('../../assets/icon.png')} style={hStyles.logo} />
+      <Text style={[hStyles.title, { color: colors.text }]}>{title}</Text>
+    </View>
+  );
+}
 const hStyles = StyleSheet.create({
   container: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   logo: { width: 24, height: 24, borderRadius: 5 },
-  title: { fontSize: 17, fontWeight: '700', color: '#1f2937' },
+  title: { fontSize: 17, fontWeight: '700' },  // color comes from theme
 });
 
 function TasksNav() {
