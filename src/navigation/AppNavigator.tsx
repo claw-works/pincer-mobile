@@ -38,6 +38,7 @@ const hStyles = StyleSheet.create({
 });
 
 function TasksNav() {
+  const { t } = useLang();
   return (
     <TasksStack.Navigator>
       <TasksStack.Screen name="TasksList" component={TasksScreen}
@@ -49,30 +50,32 @@ function TasksNav() {
 }
 
 function MessagesNav() {
+  const { t } = useLang();
   return (
     <MessagesStack.Navigator>
       <MessagesStack.Screen name="MessagesList" component={MessagesScreen}
         options={{ headerTitle: () => <HeaderTitle title={t.messages} /> }} />
       <MessagesStack.Screen name="Room" component={RoomScreen}
         options={({ route }: any) => ({
-          headerTitle: () => <HeaderTitle title={(route.params as any)?.name || '频道'} />,
+          headerTitle: () => <HeaderTitle title={(route.params as any)?.name || t.room} />,
         })} />
       <MessagesStack.Screen name="DMChat" component={DMChatScreen}
         options={({ route }: any) => ({
-          headerTitle: () => <HeaderTitle title={(route.params as any)?.name || '私信'} />,
+          headerTitle: () => <HeaderTitle title={(route.params as any)?.name || t.dm} />,
         })} />
     </MessagesStack.Navigator>
   );
 }
 
 function ReportsNav() {
+  const { t } = useLang();
   return (
     <ReportsStack.Navigator>
       <ReportsStack.Screen name="ReportJobs" component={ReportsScreen}
         options={{ headerTitle: () => <HeaderTitle title={t.reports} /> }} />
       <ReportsStack.Screen name="ReportList" component={ReportListScreen}
         options={({ route }: any) => ({
-          headerTitle: () => <HeaderTitle title={(route.params as any)?.jobName || '报告列表'} />,
+          headerTitle: () => <HeaderTitle title={(route.params as any)?.jobName || t.reportList} />,
         })} />
       <ReportsStack.Screen name="ReportDetail" component={ReportDetailScreen}
         options={{ headerTitle: () => <HeaderTitle title={t.reportDetail} /> }} />
