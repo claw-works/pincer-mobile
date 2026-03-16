@@ -55,10 +55,35 @@ export default function DMChatScreen({ route }: any) {
   }, [myId, partnerId]);
 
   useEffect(() => {
-    load();
-    const interval = setInterval(load, 5000);
-    return () => clearInterval(interval);
+    load();  // Initial HTTP fetch
   }, [load]);
+
+  // WebSocket for real-time DMs (replaces 5s polling)
+  const cfg = getConfig();
+  useDMWebSocket({
+    baseUrl: cfg?.baseUrl ?? '',
+    apiKey: cfg?.apiKey ?? '',
+    agentId: myId,
+    onMessage: (msg) => {
+      // Only show messages between myId and partnerId
+      const from = msg.from_agent_id || '';
+      const to = msg.to_agent_id || '';
+      if (!((from === myId && to === partnerId) || (from === partnerId && to === myId))) return;
+      setMessages(prev => {
+        if (prev.some(m => m.id === msg.id)) return prev;
+        const next = [...prev, msg as any].sort(
+          (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+        // Cache last message
+        AsyncStorage.setItem(
+          STORAGE_KEY_LAST_DM + partnerId,
+          JSON.stringify({ text: msg.payload?.text || '', time: msg.created_at })
+        ).catch(() => {});
+        return next;
+      });
+      setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 50);
+    },
+  });
 
   const handleSend = async () => {
     const t = text.trim();
