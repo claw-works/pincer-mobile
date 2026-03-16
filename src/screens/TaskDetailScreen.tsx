@@ -28,8 +28,7 @@ export default function TaskDetailScreen({ route, navigation }: any) {
     setActing(true);
     try {
       await approveTask(id);
-      Alert.alert('✅ 已 Approve');
-      navigation.goBack();
+      navigation.goBack();  // silent success — task list will refresh
     } catch (e: any) { Alert.alert('错误', e.message); }
     setActing(false);
   };
@@ -107,18 +106,18 @@ export default function TaskDetailScreen({ route, navigation }: any) {
         {task.status === 'review' && (
           <View style={styles.actions}>
             <TouchableOpacity
-              style={[styles.btn, styles.approveBtn, acting && { opacity: 0.5 }]}
+              style={[styles.btnFull, styles.approveBtn, acting && { opacity: 0.5 }]}
               onPress={handleApprove}
               disabled={acting}
             >
-              <Text style={styles.btnText}>✅ Approve</Text>
+              <Text style={styles.btnText}>✅ Approve（通过）</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.btn, styles.rejectBtn, acting && { opacity: 0.5 }]}
+              style={[styles.btnOutline, acting && { opacity: 0.5 }]}
               onPress={openReject}
               disabled={acting}
             >
-              <Text style={styles.btnText}>❌ 打回</Text>
+              <Text style={styles.btnOutlineText}>❌ 打回</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -175,11 +174,14 @@ const styles = StyleSheet.create({
   resultBox: { backgroundColor: '#f0fdf4', borderRadius: 8, padding: 12, borderLeftWidth: 3, borderLeftColor: '#10b981' },
   criterion: { fontSize: 14, color: '#4b5563', lineHeight: 24, marginLeft: 8 },
   meta: { fontSize: 12, color: '#9ca3af', marginTop: 16 },
-  actions: { flexDirection: 'row', gap: 12, marginTop: 24 },
-  btn: { flex: 1, borderRadius: 8, padding: 14, alignItems: 'center' },
+  actions: { flexDirection: 'column', gap: 10, marginTop: 24 },
+  btn: { flex: 1, borderRadius: 10, padding: 14, alignItems: 'center' },  // kept for compat
+  btnFull: { borderRadius: 10, padding: 16, alignItems: 'center' },
   approveBtn: { backgroundColor: '#10b981' },
   rejectBtn: { backgroundColor: '#ef4444' },
-  btnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  btnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  btnOutline: { borderRadius: 10, padding: 14, alignItems: 'center', borderWidth: 1.5, borderColor: '#ef4444' },
+  btnOutlineText: { color: '#ef4444', fontWeight: '700', fontSize: 15 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalCard: { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, paddingBottom: 40 },
   modalTitle: { fontSize: 17, fontWeight: '700', color: '#1f2937', marginBottom: 16 },

@@ -37,7 +37,14 @@ export default function DMChatScreen({ route }: any) {
         (m.from_agent_id === partnerId && m.to_agent_id === myId)
       );
       const sorted = [...filtered].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-      setMessages(sorted);
+      // Merge: keep optimistic messages (id starts with 'opt_') + server messages
+      setMessages(prev => {
+        const serverIds = new Set(sorted.map(m => m.id));
+        const optimistic = prev.filter(m => m.id.startsWith('opt_') && !serverIds.has(m.id));
+        return [...sorted, ...optimistic].sort((a, b) =>
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+      });
       // Cache last message for DMListScreen
       if (sorted.length) {
         const last = sorted[sorted.length - 1];
