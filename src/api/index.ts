@@ -113,6 +113,17 @@ export async function fetchDMs(fromId: string, toId: string, params?: { limit?: 
   );
 }
 
+/** Fetch conversation (both directions) between two agents. Returns all messages sent/received. */
+export async function fetchConversation(agentA: string, agentB: string, params?: { limit?: number }) {
+  const q = new URLSearchParams();
+  q.set('agent_a', agentA);
+  q.set('agent_b', agentB);
+  if (params?.limit) q.set('limit', String(params.limit));
+  return api.get<{ id: string; from_agent_id: string; to_agent_id: string; payload: { text: string }; created_at: string }[]>(
+    `/messages/conversation?${q.toString()}`
+  );
+}
+
 export async function sendDM(fromId: string, toId: string, text: string) {
   return api.post('/messages/send', { from_agent_id: fromId, to_agent_id: toId, payload: { text } });
 }

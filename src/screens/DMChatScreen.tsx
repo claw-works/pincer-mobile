@@ -4,7 +4,8 @@ import {
   StyleSheet, KeyboardAvoidingView, Platform, SafeAreaView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { fetchDMs, sendDM } from '../api';
+import { fetchConversation, sendDM } from '../api';
+import { useLang } from '../i18n/LangContext';
 
 const STORAGE_KEY_LAST_DM = 'pincerLastDm_';
 
@@ -27,16 +28,13 @@ export default function DMChatScreen({ route }: any) {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const flatRef = useRef<FlatList>(null);
+  const { t } = useLang();
 
   const load = useCallback(async () => {
     try {
-      const msgs = await fetchDMs(myId, partnerId, { limit: 50 });
-      // Filter: only messages between myId and partnerId
-      const filtered = msgs.filter(m =>
-        (m.from_agent_id === myId && m.to_agent_id === partnerId) ||
-        (m.from_agent_id === partnerId && m.to_agent_id === myId)
-      );
-      const sorted = [...filtered].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      // Use conversation endpoint to get both sent and received messages
+      const msgs = await fetchConversation(myId, partnerId, { limit: 50 });
+      const sorted = [...msgs].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
       // Merge: keep optimistic messages (id starts with 'opt_') + server messages
       setMessages(prev => {
         const serverIds = new Set(sorted.map(m => m.id));
@@ -111,7 +109,7 @@ export default function DMChatScreen({ route }: any) {
           onLayout={() => flatRef.current?.scrollToEnd({ animated: false })}
           contentContainerStyle={{ padding: 12, paddingBottom: 4 }}
           ListEmptyComponent={
-            <Text style={styles.empty}>暂无消息，发送第一条吧 👋</Text>
+            <Text style={styles.empty}>{t.noMsgs}</Text>
           }
           renderItem={({ item }) => {
             const isMine = item.from_agent_id === myId;
@@ -138,7 +136,7 @@ export default function DMChatScreen({ route }: any) {
             style={styles.input}
             value={text}
             onChangeText={setText}
-            placeholder={`发消息给 ${name}...`}
+            placeholder={`${t.dmPlaceholder} ${name}...`}
             placeholderTextColor="#9ca3af"
             multiline
             maxLength={500}

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ActivityIndicator, Alert, ScrollView, KeyboardAvoidingView, Platform, Switch,
+  ActivityIndicator, Alert, ScrollView, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEY_HUMAN_AGENT_ID, STORAGE_KEY_API_KEY, clearConfig, getConfig } from '../api/client';
@@ -56,18 +56,18 @@ export default function ProfileScreen({ onLogout }: Props) {
       setHumanId(agent.id);
       setHumanName(agent.name || nameInput.trim());
       setNameInput('');
-      Alert.alert('✅ 绑定成功', `已绑定人类身份：${agent.name || agent.id.slice(0, 8)}`);
+      Alert.alert(lang === 'zh' ? '✅ 绑定成功' : '✅ Identity bound', `${lang === 'zh' ? '已绑定人类身份：' : 'Bound: '}${agent.name || agent.id.slice(0, 8)}`);
     } catch (e: any) {
-      Alert.alert('绑定失败', e?.message ?? '未知错误');
+      Alert.alert(lang === 'zh' ? '绑定失败' : 'Binding failed', e?.message ?? (lang === 'zh' ? '未知错误' : 'Unknown error'));
     }
     setRegistering(false);
   };
 
   const handleUnlink = async () => {
-    Alert.alert('解绑人类身份', '确认解除绑定？', [
-      { text: '取消' },
+    Alert.alert(lang === 'zh' ? '解绑人类身份' : 'Unlink Identity', lang === 'zh' ? '确认解除绑定？' : 'Confirm unlink?', [
+      { text: lang === 'zh' ? '取消' : 'Cancel' },
       {
-        text: '确认',
+        text: lang === 'zh' ? '确认' : 'Confirm',
         style: 'destructive',
         onPress: async () => {
           await AsyncStorage.removeItem(STORAGE_KEY_HUMAN_AGENT_ID);
@@ -80,9 +80,9 @@ export default function ProfileScreen({ onLogout }: Props) {
   };
 
   const handleLogout = () => {
-    Alert.alert('退出登录', '确认退出？所有配置将清除。', [
-      { text: '取消' },
-      { text: '退出', style: 'destructive', onPress: async () => { await clearConfig(); onLogout(); } },
+    Alert.alert(lang === 'zh' ? '退出登录' : 'Log Out', lang === 'zh' ? '确认退出？所有配置将清除。' : 'Confirm logout? All config cleared.', [
+      { text: lang === 'zh' ? '取消' : 'Cancel' },
+      { text: lang === 'zh' ? '退出' : 'Log Out', style: 'destructive', onPress: async () => { await clearConfig(); onLogout(); } },
     ]);
   };
 
@@ -96,22 +96,22 @@ export default function ProfileScreen({ onLogout }: Props) {
       <ScrollView style={styles.container} contentContainerStyle={{ padding: 20 }}>
         {/* Connection info */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🌐 连接信息</Text>
+          <Text style={styles.sectionTitle}>{lang === 'zh' ? '🌐 连接信息' : '🌐 Connection'}</Text>
           <View style={styles.infoRow}>
-            <Text style={styles.label}>服务器</Text>
-            <Text style={styles.value} numberOfLines={1}>{baseUrl || '未配置'}</Text>
+            <Text style={styles.label}>{lang === 'zh' ? '服务器' : 'Server'}</Text>
+            <Text style={styles.value} numberOfLines={1}>{baseUrl || (lang === 'zh' ? '未配置' : 'Not set')}</Text>
           </View>
           <View style={styles.infoRow}>
             <Text style={styles.label}>API Key</Text>
             <Text style={styles.value} numberOfLines={1}>
-              {apiKey ? `${apiKey.slice(0, 8)}••••••••` : '未配置'}
+              {apiKey ? `${apiKey.slice(0, 8)}••••••••` : (lang === 'zh' ? '未配置' : 'Not set')}
             </Text>
           </View>
         </View>
 
         {/* Human identity */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>👤 人类身份</Text>
+          <Text style={styles.sectionTitle}>{lang === 'zh' ? '👤 人类身份' : '👤 Identity'}</Text>
           {humanId ? (
             <View>
               <View style={styles.identityCard}>
@@ -128,19 +128,19 @@ export default function ProfileScreen({ onLogout }: Props) {
                   <Text style={styles.verifiedText}>✓ 已认证</Text>
                 </View>
               </View>
-              <Text style={styles.hint}>已绑定人类身份，可以审批/拒绝任务</Text>
+              <Text style={styles.hint}>{lang === 'zh' ? '已绑定人类身份，可以审批/拒绝任务' : 'Identity bound — you can approve/reject tasks'}</Text>
               <TouchableOpacity style={styles.unlinkBtn} onPress={handleUnlink}>
-                <Text style={styles.unlinkText}>解绑人类身份</Text>
+                <Text style={styles.unlinkText}>{lang === 'zh' ? '解绑人类身份' : 'Unlink Identity'}</Text>
               </TouchableOpacity>
             </View>
           ) : (
             <View>
-              <Text style={styles.hint}>绑定人类身份后可以在手机上 Approve / Reject 任务</Text>
+              <Text style={styles.hint}>{lang === 'zh' ? '绑定人类身份后可以在手机上 Approve / Reject 任务' : 'Bind your identity to Approve / Reject tasks on mobile'}</Text>
 
               {/* Existing human agents to select from (a195f5ad) */}
               {humanAgents.length > 0 && (
                 <View style={{ marginBottom: 12 }}>
-                  <Text style={[styles.label, { marginBottom: 8 }]}>选择已注册身份</Text>
+                  <Text style={[styles.label, { marginBottom: 8 }]}>{lang === 'zh' ? '选择已注册身份' : 'Select existing identity'}</Text>
                   {humanAgents.map(agent => (
                     <TouchableOpacity
                       key={agent.id}
@@ -164,13 +164,13 @@ export default function ProfileScreen({ onLogout }: Props) {
                   ))}
                   <View style={styles.divider}>
                     <View style={styles.dividerLine} />
-                    <Text style={styles.dividerText}>或创建新身份</Text>
+                    <Text style={styles.dividerText}>{lang === 'zh' ? '或创建新身份' : 'or create new identity'}</Text>
                     <View style={styles.dividerLine} />
                   </View>
                 </View>
               )}
 
-              <Text style={styles.label}>你的名字</Text>
+              <Text style={styles.label}>{lang === 'zh' ? '你的名字' : 'Your Name'}</Text>
               <TextInput
                 style={styles.input}
                 value={nameInput}
@@ -186,7 +186,7 @@ export default function ProfileScreen({ onLogout }: Props) {
                 {registering ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.registerBtnText}>绑定人类身份</Text>
+                  <Text style={styles.registerBtnText}>{lang === 'zh' ? '绑定人类身份' : 'Bind Identity'}</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -196,11 +196,11 @@ export default function ProfileScreen({ onLogout }: Props) {
         {/* Logout */}
         {/* Theme + Language toggles */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🎨 外观 / Appearance</Text>
+          <Text style={styles.sectionTitle}>{lang === 'zh' ? '🎨 外观 / Appearance' : '🎨 Appearance / 外观'}</Text>
           <View style={styles.themeRow}>
             <View>
               <Text style={styles.themeLabel}>{theme === 'dark' ? '🖥️ 极客暗黑模式' : '☀️ 明亮模式'}</Text>
-              <Text style={[styles.hint, { marginBottom: 0 }]}>{theme === 'dark' ? '黑绿配色，程序员最爱' : '清爽白色，日常使用'}</Text>
+              <Text style={[styles.hint, { marginBottom: 0 }]}>{theme === 'dark' ? (lang === 'zh' ? '黑绿配色，程序员最爱' : 'Black & green, dev style') : (lang === 'zh' ? '清爽白色，日常使用' : 'Clean white, daily use')}</Text>
             </View>
             <Switch
               value={theme === 'dark'}
@@ -210,21 +210,26 @@ export default function ProfileScreen({ onLogout }: Props) {
             />
           </View>
           <View style={[styles.themeRow, { marginTop: 12 }]}>
-            <View>
-              <Text style={styles.themeLabel}>🌐 语言 / Language</Text>
-              <Text style={[styles.hint, { marginBottom: 0 }]}>{lang === 'zh' ? '中文界面' : 'English interface'}</Text>
+            <Text style={styles.themeLabel}>🌐 语言 / Language</Text>
+            <View style={styles.langSegment}>
+              {(['zh', 'en'] as const).map(l => (
+                <TouchableOpacity
+                  key={l}
+                  style={[styles.langBtn, lang === l && styles.langBtnActive]}
+                  onPress={() => { if (lang !== l) toggleLang(); }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.langBtnText, lang === l && styles.langBtnTextActive]}>
+                    {l === 'zh' ? '中文' : 'EN'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
-            <Switch
-              value={lang === 'en'}
-              onValueChange={toggleLang}
-              trackColor={{ false: '#e5e7eb', true: '#6366f1' }}
-              thumbColor="#ffffff"
-            />
           </View>
         </View>
 
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-          <Text style={styles.logoutText}>退出登录</Text>
+          <Text style={styles.logoutText}>{lang === 'zh' ? '退出登录' : 'Log Out'}</Text>
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -280,6 +285,11 @@ const styles = StyleSheet.create({
   unlinkText: { color: '#ef4444', fontSize: 13, textAlign: 'center' },
   themeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   themeLabel: { fontSize: 15, fontWeight: '600', color: '#1f2937', marginBottom: 2 },
+  langSegment: { flexDirection: 'row', borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb', overflow: 'hidden' },
+  langBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: '#f9fafb' },
+  langBtnActive: { backgroundColor: '#6366f1' },
+  langBtnText: { fontSize: 13, fontWeight: '600', color: '#6b7280' },
+  langBtnTextActive: { color: '#fff' },
   logoutBtn: {
     borderWidth: 1, borderColor: '#fca5a5', borderRadius: 10, padding: 14,
     alignItems: 'center', marginTop: 8,
