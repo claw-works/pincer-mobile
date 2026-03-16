@@ -117,7 +117,7 @@ export default function DMChatScreen({ route }: any) {
                   </View>
                 )}
                 <View style={[styles.bubble, isMine ? styles.mineBubble : styles.theirsBubble]}>
-                  <Text style={[styles.msgText, isMine && { color: '#fff' }]}>{msgText}</Text>
+                  <Text style={[styles.msgText, { color: isMine ? '#fff' : '#1f2937' }]}>{msgText}</Text>
                   <Text style={[styles.time, isMine && { color: 'rgba(255,255,255,0.7)' }]}>
                     {new Date(item.created_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
                   </Text>
@@ -152,15 +152,15 @@ export default function DMChatScreen({ route }: any) {
 
 const styles = StyleSheet.create({
   empty: { textAlign: 'center', color: '#9ca3af', marginTop: 60, fontSize: 14 },
-  bubbleWrap: { marginBottom: 8, flexDirection: 'row', alignItems: 'flex-end' },
+  bubbleWrap: { marginBottom: 10, flexDirection: 'row', alignItems: 'flex-start' },  // top-align avatar
   mineWrap: { justifyContent: 'flex-end' },
   theirsWrap: { justifyContent: 'flex-start' },
-  theirAvatar: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#6366f1', justifyContent: 'center', alignItems: 'center', marginRight: 6 },
+  theirAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#6366f1', justifyContent: 'center', alignItems: 'center', marginRight: 8, marginTop: 2 },
   theirAvatarText: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  bubble: { maxWidth: '75%', borderRadius: 16, padding: 10 },
+  bubble: { maxWidth: '75%', borderRadius: 18, padding: 10, paddingHorizontal: 13 },
   mineBubble: { backgroundColor: '#6366f1', borderBottomRightRadius: 4 },
-  theirsBubble: { backgroundColor: '#fff', borderBottomLeftRadius: 4, borderWidth: StyleSheet.hairlineWidth, borderColor: '#e5e7eb' },
-  msgText: { fontSize: 14, color: '#1f2937', lineHeight: 20 },
+  theirsBubble: { backgroundColor: '#e5e7eb', borderBottomLeftRadius: 4 },
+  msgText: { fontSize: 14, lineHeight: 20 },
   time: { fontSize: 10, color: '#9ca3af', marginTop: 4, alignSelf: 'flex-end' },
   inputRow: {
     flexDirection: 'row', padding: 8, paddingBottom: Platform.OS === 'android' ? 12 : 8,
