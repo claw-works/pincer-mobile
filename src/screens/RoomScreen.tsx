@@ -7,8 +7,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchRoomMessages, postRoomMessage } from '../api';
-import { STORAGE_KEY_HUMAN_AGENT_ID } from '../api/client';
+import { STORAGE_KEY_HUMAN_AGENT_ID, getConfig } from '../api/client';
 import { useAgents } from '../hooks/useAgents';
+import { useRoomWebSocket } from '../hooks/useRoomWebSocket';
 import type { RoomMessage } from '../types';
 
 const CACHE_KEY = (roomId: string) => `pincerRoomMsgs_${roomId}`;
@@ -90,21 +91,30 @@ export default function RoomScreen({ route }: any) {
 
   useEffect(() => {
     loadInitial();
-    const interval = setInterval(async () => {
-      if (!lastTs.current) return;
-      try {
-        const newMsgs = await fetchRoomMessages(roomId, { since: lastTs.current, limit: 50 });
-        if (!newMsgs.length) return;
-        setMessages(prev => {
-          const ids = new Set(prev.map(m => m.id));
-          const fresh = newMsgs.filter(m => !ids.has(m.id));
-          return fresh.length ? [...prev, ...fresh] : prev;
-        });
-        lastTs.current = newMsgs[newMsgs.length - 1].created_at;
-      } catch (e) { /* silent */ }
-    }, 3000);
-    return () => clearInterval(interval);
   }, [roomId, loadInitial]);
+
+  // WebSocket for real-time messages (replaces polling)
+  const cfg = getConfig();
+  useRoomWebSocket({
+    baseUrl: cfg?.baseUrl ?? '',
+    apiKey: cfg?.apiKey ?? '',
+    roomId,
+    onMessage: (msg) => {
+      setMessages(prev => {
+        if (prev.some(m => m.id === msg.id)) return prev;
+        const next = [...prev, msg];
+        // Update lastTs for any future cache writes
+        lastTs.current = msg.created_at;
+        // Cache update
+        AsyncStorage.setItem(
+          'pincerLastRoom_' + roomId,
+          JSON.stringify({ text: msg.content || '', time: msg.created_at })
+        ).catch(() => {});
+        return next;
+      });
+      setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 50);
+    },
+  });
 
   // Parse @ mentions as user types
   const handleTextChange = (val: string) => {
