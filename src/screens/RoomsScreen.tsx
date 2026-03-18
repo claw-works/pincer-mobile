@@ -38,15 +38,6 @@ export default function RoomsScreen({ navigation }: any) {
       ]
 
       setSections(result)
-      
-      // Auto-navigate if only one room total
-      const allRooms = [...defaultRooms, ...projectRooms]
-      if (allRooms.length === 1) {
-        navigation.replace('Room', {
-          id: allRooms[0].id,
-          name: displayRoomName(allRooms[0].name, allRooms[0].id),
-        })
-      }
     } catch (e) { console.error(e) }
     setLoading(false)
     setRefreshing(false)
