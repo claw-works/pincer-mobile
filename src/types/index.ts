@@ -31,6 +31,7 @@ export interface Project {
   id: string;
   name: string;
   description?: string;
+  room_id?: string;  // project chat room ID (v0.10.11+)
   created_at: string;
 }
 
