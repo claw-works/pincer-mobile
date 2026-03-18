@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ActivityIndicator, Alert, ScrollView, KeyboardAvoidingView, Platform,
+  ActivityIndicator, Alert, ScrollView, KeyboardAvoidingView, Platform, Switch,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEY_HUMAN_AGENT_ID, STORAGE_KEY_API_KEY, clearConfig, getConfig } from '../api/client';
