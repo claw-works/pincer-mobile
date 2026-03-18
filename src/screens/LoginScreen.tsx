@@ -19,7 +19,7 @@ interface LoginScreenProps {
 }
 
 export default function LoginScreen({ onLoggedIn }: LoginScreenProps) {
-  const [baseUrl, setBaseUrl] = useState('https://pincer.apig.run');
+  const [baseUrl, setBaseUrl] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [loading, setLoading] = useState(false);
   const [showKey, setShowKey] = useState(false);
