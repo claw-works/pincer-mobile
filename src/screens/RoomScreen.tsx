@@ -36,7 +36,8 @@ export default function RoomScreen({ route }: any) {
   const [text, setText] = useState('');
   const [agentId, setAgentId] = useState('');
   const [mentionPickerVisible, setMentionPickerVisible] = useState(false);
-  const mentionAtIdx = useRef(-1); // position of @ that triggered the picker
+  const AVATAR_COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444'];
+  const avatarColor = (name: string) => AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
   const [replyingAgents, setReplyingAgents] = useState<Record<string, { name: string }>>({});
   const replyingTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const lastTs = useRef('');
@@ -44,8 +45,18 @@ export default function RoomScreen({ route }: any) {
   const inputRef = useRef<TextInput>(null);
   const { agents, getName } = useAgents();
 
-  const AVATAR_COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444'];
-  const avatarColor = (name: string) => AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
+  const THINKING_TEXTS = [
+    '正在思考', '正在调动资源', '正在施法', '正在翻阅古籍',
+    '正在烧脑', '正在量子计算', '正在冥想', '正在连接宇宙',
+    '正在召唤神龙', '正在高速运转', '正在爆炸中 💣',
+  ];
+  const thinkingTextRef = useRef<Record<string, string>>({});
+  const getThinkingText = (id: string) => {
+    if (!thinkingTextRef.current[id]) {
+      thinkingTextRef.current[id] = THINKING_TEXTS[Math.floor(Math.random() * THINKING_TEXTS.length)];
+    }
+    return thinkingTextRef.current[id];
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -153,6 +164,7 @@ export default function RoomScreen({ route }: any) {
   const handleAgentReplyingDone = useCallback(({ agent_id }: { agent_id: string }) => {
     if (replyingTimers.current[agent_id]) clearTimeout(replyingTimers.current[agent_id]);
     delete replyingTimers.current[agent_id];
+    delete thinkingTextRef.current[agent_id];
     setReplyingAgents(prev => { const next = { ...prev }; delete next[agent_id]; return next; });
   }, []);
 
@@ -192,7 +204,7 @@ export default function RoomScreen({ route }: any) {
                   </View>
                 ))}
                 <Text style={styles.replyingText}>
-                  {Object.values(replyingAgents).map(a => a.name).join('、')} 正在回复...
+                  {Object.entries(replyingAgents).map(([id, { name }]) => `${name} ${getThinkingText(id)}`).join('、')}...
                 </Text>
               </View>
             ) : null
