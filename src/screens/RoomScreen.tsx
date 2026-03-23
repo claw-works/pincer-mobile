@@ -147,6 +147,7 @@ export default function RoomScreen({ route }: any) {
       setReplyingAgents(prev => { const next = { ...prev }; delete next[agent_id]; return next; });
     }, 30000);
     setReplyingAgents(prev => ({ ...prev, [agent_id]: { name } }));
+    setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 50);
   }, [agents]);
 
   const handleAgentReplyingDone = useCallback(({ agent_id }: { agent_id: string }) => {
