@@ -8,20 +8,31 @@ type RoomMessage = {
   created_at: string;
 };
 
+export type ReplyingEvent = {
+  agent_id: string;
+  agent_name?: string;
+};
+
 interface Options {
   baseUrl: string;
   apiKey: string;
   roomId: string;
   onMessage: (msg: RoomMessage) => void;
+  onAgentReplying?: (payload: ReplyingEvent) => void;
+  onAgentReplyingDone?: (payload: ReplyingEvent) => void;
 }
 
-export function useRoomWebSocket({ baseUrl, apiKey, roomId, onMessage }: Options) {
+export function useRoomWebSocket({ baseUrl, apiKey, roomId, onMessage, onAgentReplying, onAgentReplyingDone }: Options) {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectDelay = useRef(2000);
   const stopped = useRef(false);
   const onMessageRef = useRef(onMessage);
+  const onReplyingRef = useRef(onAgentReplying);
+  const onReplyingDoneRef = useRef(onAgentReplyingDone);
   onMessageRef.current = onMessage;
+  onReplyingRef.current = onAgentReplying;
+  onReplyingDoneRef.current = onAgentReplyingDone;
 
   const connect = useCallback(() => {
     if (stopped.current) return;
@@ -41,9 +52,17 @@ export function useRoomWebSocket({ baseUrl, apiKey, roomId, onMessage }: Options
 
     ws.onmessage = (e) => {
       try {
-        const msg = JSON.parse(e.data);
-        if (msg.type !== 'room.message') return;
-        const data = msg.data || msg.payload || {};
+        const envelope = JSON.parse(e.data);
+        const data = envelope.data || envelope.payload || {};
+        if (envelope.type === 'agent_replying') {
+          onReplyingRef.current?.(data as ReplyingEvent);
+          return;
+        }
+        if (envelope.type === 'agent_replying_done') {
+          onReplyingDoneRef.current?.(data as ReplyingEvent);
+          return;
+        }
+        if (envelope.type !== 'room.message') return;
         if (!data.id) return;
         onMessageRef.current(data as RoomMessage);
       } catch { /* ignore */ }

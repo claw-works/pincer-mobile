@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   View, Text, FlatList, TextInput, TouchableOpacity,
-  StyleSheet, KeyboardAvoidingView, Platform, SafeAreaView,
+  StyleSheet, KeyboardAvoidingView, Platform, SafeAreaView, Animated,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
@@ -37,6 +37,8 @@ export default function RoomScreen({ route }: any) {
   const [agentId, setAgentId] = useState('');
   const [mentionPickerVisible, setMentionPickerVisible] = useState(false);
   const mentionAtIdx = useRef(-1); // position of @ that triggered the picker
+  const [replyingAgents, setReplyingAgents] = useState<Record<string, { name: string }>>({});
+  const replyingTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const lastTs = useRef('');
   const flatRef = useRef<FlatList>(null);
   const inputRef = useRef<TextInput>(null);
@@ -104,9 +106,7 @@ export default function RoomScreen({ route }: any) {
       setMessages(prev => {
         if (prev.some(m => m.id === msg.id)) return prev;
         const next = [...prev, msg];
-        // Update lastTs for any future cache writes
         lastTs.current = msg.created_at;
-        // Cache update
         AsyncStorage.setItem(
           'pincerLastRoom_' + roomId,
           JSON.stringify({ text: msg.content || '', time: msg.created_at })
@@ -115,6 +115,8 @@ export default function RoomScreen({ route }: any) {
       });
       setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 50);
     },
+    onAgentReplying: handleAgentReplying,
+    onAgentReplyingDone: handleAgentReplyingDone,
   });
 
   // Parse @ mentions as user types
@@ -137,6 +139,21 @@ export default function RoomScreen({ route }: any) {
     setMentionPickerVisible(false);
     inputRef.current?.focus();
   };
+
+  const handleAgentReplying = useCallback(({ agent_id, agent_name }: { agent_id: string; agent_name?: string }) => {
+    const name = agent_name || agents.find(a => a.id === agent_id)?.name || agent_id.slice(0, 8);
+    if (replyingTimers.current[agent_id]) clearTimeout(replyingTimers.current[agent_id]);
+    replyingTimers.current[agent_id] = setTimeout(() => {
+      setReplyingAgents(prev => { const next = { ...prev }; delete next[agent_id]; return next; });
+    }, 30000);
+    setReplyingAgents(prev => ({ ...prev, [agent_id]: { name } }));
+  }, [agents]);
+
+  const handleAgentReplyingDone = useCallback(({ agent_id }: { agent_id: string }) => {
+    if (replyingTimers.current[agent_id]) clearTimeout(replyingTimers.current[agent_id]);
+    delete replyingTimers.current[agent_id];
+    setReplyingAgents(prev => { const next = { ...prev }; delete next[agent_id]; return next; });
+  }, []);
 
   const send = async () => {
     const t = text.trim();
@@ -194,6 +211,20 @@ export default function RoomScreen({ route }: any) {
               onConfirm={handleMentionConfirm}
               onClose={() => setMentionPickerVisible(false)}
             />
+
+            {/* Replying indicators */}
+            {Object.keys(replyingAgents).length > 0 && (
+              <View style={styles.replyingBar}>
+                {Object.entries(replyingAgents).map(([id, { name }]) => (
+                  <View key={id} style={[styles.replyingAvatar, { backgroundColor: avatarColor(id) }]}>
+                    <Text style={styles.replyingAvatarText}>{name.charAt(0).toUpperCase()}</Text>
+                  </View>
+                ))}
+                <Text style={styles.replyingText}>
+                  {Object.values(replyingAgents).map(a => a.name).join('、')} 正在回复...
+                </Text>
+              </View>
+            )}
 
             <View style={[styles.inputRow, { paddingBottom: Platform.OS === 'android' ? 12 : 8 }]}>
               <TextInput
@@ -263,4 +294,15 @@ const styles = StyleSheet.create({
   sendBtnDisabled: { opacity: 0.4 },
   noIdentityBar: { backgroundColor: '#fef3c7', padding: 12, borderTopWidth: 1, borderTopColor: '#fde68a', alignItems: 'center' },
   noIdentityText: { fontSize: 13, color: '#92400e', textAlign: 'center' },
+  replyingBar: {
+    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6,
+    backgroundColor: '#f9fafb', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#e5e7eb',
+  },
+  replyingAvatar: {
+    width: 22, height: 22, borderRadius: 11,
+    justifyContent: 'center', alignItems: 'center', marginRight: 4,
+    opacity: 0.85,
+  },
+  replyingAvatarText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+  replyingText: { fontSize: 12, color: '#9ca3af', fontStyle: 'italic' },
 });
