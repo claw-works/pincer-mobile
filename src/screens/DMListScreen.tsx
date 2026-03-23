@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
-import { fetchAgents } from '../api';
+import { fetchAgents, fetchConversation } from '../api';
 import { STORAGE_KEY_HUMAN_AGENT_ID } from '../api/client';
 import type { Agent } from '../types';
 
@@ -39,10 +39,24 @@ export default function DMListScreen({ navigation }: any) {
 
       const withLast = await Promise.all(
         others.map(async (a) => {
-          const cached = await AsyncStorage.getItem(STORAGE_KEY_LAST_DM + a.id);
-          if (cached) {
-            const { text, time } = JSON.parse(cached);
-            return { ...a, lastMessage: text, lastTime: time };
+          try {
+            // Fetch real last message from API for accurate sort
+            const msgs = await fetchConversation(selfId, a.id, { limit: 1 });
+            if (msgs && msgs.length > 0) {
+              const last = msgs[0];
+              const text = last.payload?.text || '';
+              const time = last.created_at;
+              // Update cache
+              await AsyncStorage.setItem(STORAGE_KEY_LAST_DM + a.id, JSON.stringify({ text, time }));
+              return { ...a, lastMessage: text, lastTime: time };
+            }
+          } catch {
+            // Fallback to cache on error
+            const cached = await AsyncStorage.getItem(STORAGE_KEY_LAST_DM + a.id);
+            if (cached) {
+              const { text, time } = JSON.parse(cached);
+              return { ...a, lastMessage: text, lastTime: time };
+            }
           }
           return { ...a };
         })

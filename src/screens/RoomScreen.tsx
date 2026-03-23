@@ -10,6 +10,7 @@ import { fetchRoomMessages, postRoomMessage } from '../api';
 import { STORAGE_KEY_HUMAN_AGENT_ID, getConfig } from '../api/client';
 import { useAgents } from '../hooks/useAgents';
 import { useRoomWebSocket } from '../hooks/useRoomWebSocket';
+import MentionPickerModal, { recordMention } from '../components/MentionPickerModal';
 import type { RoomMessage } from '../types';
 
 const CACHE_KEY = (roomId: string) => `pincerRoomMsgs_${roomId}`;
@@ -34,8 +35,8 @@ export default function RoomScreen({ route }: any) {
   const [messages, setMessages] = useState<RoomMessage[]>([]);
   const [text, setText] = useState('');
   const [agentId, setAgentId] = useState('');
-  const [mentionQuery, setMentionQuery] = useState('');   // '' = no menu
-  const [mentionSuggestions, setMentionSuggestions] = useState<{ id: string; name: string }[]>([]);
+  const [mentionPickerVisible, setMentionPickerVisible] = useState(false);
+  const mentionAtIdx = useRef(-1); // position of @ that triggered the picker
   const lastTs = useRef('');
   const flatRef = useRef<FlatList>(null);
   const inputRef = useRef<TextInput>(null);
@@ -119,38 +120,21 @@ export default function RoomScreen({ route }: any) {
   // Parse @ mentions as user types
   const handleTextChange = (val: string) => {
     setText(val);
-    // Find the last @ in the text
-    const atIdx = val.lastIndexOf('@');
-    if (atIdx >= 0) {
-      const query = val.slice(atIdx + 1);
-      // Only show if no space after @
-      if (!query.includes(' ') && !query.includes('\n')) {
-        setMentionQuery(query);
-        const q = query.toLowerCase();
-        // Add @all option + agents filtered by query
-        const allOption = { id: '__all__', name: 'all' };
-        const filtered = agents
-          .filter(a => a.name?.toLowerCase().includes(q) || 'all'.includes(q))
-          .map(a => ({ id: a.id, name: a.name || a.id.slice(0, 8) }));
-        const suggestions = q === '' || 'all'.startsWith(q)
-          ? [allOption, ...filtered]
-          : filtered;
-        setMentionSuggestions(suggestions.slice(0, 6));
-        return;
-      }
+    // Detect @ trigger: last char is @
+    if (val.endsWith('@')) {
+      mentionAtIdx.current = val.length - 1;
+      setMentionPickerVisible(true);
     }
-    setMentionQuery('');
-    setMentionSuggestions([]);
   };
 
-  const insertMention = (agent: { id: string; name: string }) => {
-    const atIdx = text.lastIndexOf('@');
-    const before = text.slice(0, atIdx);
-    const mention = agent.id === '__all__' ? '@all' : `@${agent.name}`;
-    const newText = before + mention + ' ';
+  const handleMentionConfirm = async (selected: { id: string; name: string }[]) => {
+    await recordMention(selected.map(a => a.id));
+    const mentions = selected.map(a => `@${a.name}`).join(' ');
+    // Replace from @ position
+    const before = mentionAtIdx.current >= 0 ? text.slice(0, mentionAtIdx.current) : text;
+    const newText = before + mentions + ' ';
     setText(newText);
-    setMentionSuggestions([]);
-    setMentionQuery('');
+    setMentionPickerVisible(false);
     inputRef.current?.focus();
   };
 
@@ -204,31 +188,12 @@ export default function RoomScreen({ route }: any) {
           </View>
         ) : (
           <View>
-            {/* @ mention autocomplete */}
-            {mentionSuggestions.length > 0 && (
-              <View style={styles.mentionPanel}>
-                {mentionSuggestions.map(agent => (
-                  <TouchableOpacity
-                    key={agent.id}
-                    style={styles.mentionItem}
-                    onPress={() => insertMention(agent)}
-                  >
-                    {agent.id === '__all__' ? (
-                      <View style={[styles.mentionAvatarCircle, { backgroundColor: '#6366f1' }]}>
-                        <Text style={{ fontSize: 14 }}>📢</Text>
-                      </View>
-                    ) : (
-                      <View style={[styles.mentionAvatarCircle, { backgroundColor: avatarColor(agent.name) }]}>
-                        <Text style={styles.mentionAvatarInitial}>{agent.name.charAt(0).toUpperCase()}</Text>
-                      </View>
-                    )}
-                    <Text style={styles.mentionName}>
-                      {agent.id === '__all__' ? 'all（全体）' : agent.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
+            <MentionPickerModal
+              visible={mentionPickerVisible}
+              agents={agents.map(a => ({ id: a.id, name: a.name || a.id.slice(0, 8), type: a.type }))}
+              onConfirm={handleMentionConfirm}
+              onClose={() => setMentionPickerVisible(false)}
+            />
 
             <View style={[styles.inputRow, { paddingBottom: Platform.OS === 'android' ? 12 : 8 }]}>
               <TextInput
