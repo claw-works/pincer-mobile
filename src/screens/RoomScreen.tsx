@@ -182,6 +182,20 @@ export default function RoomScreen({ route }: any) {
           onContentSizeChange={() => flatRef.current?.scrollToEnd({ animated: false })}
           onLayout={() => flatRef.current?.scrollToEnd({ animated: false })}
           contentContainerStyle={{ padding: 12, paddingBottom: 8 }}
+          ListFooterComponent={
+            Object.keys(replyingAgents).length > 0 ? (
+              <View style={styles.replyingBar}>
+                {Object.entries(replyingAgents).map(([id, { name }]) => (
+                  <View key={id} style={[styles.replyingAvatar, { backgroundColor: avatarColor(id) }]}>
+                    <Text style={styles.replyingAvatarText}>{name.charAt(0).toUpperCase()}</Text>
+                  </View>
+                ))}
+                <Text style={styles.replyingText}>
+                  {Object.values(replyingAgents).map(a => a.name).join('、')} 正在回复...
+                </Text>
+              </View>
+            ) : null
+          }
           renderItem={({ item }) => {
             const isMine = item.sender_agent_id === agentId;
             const senderName = getName(item.sender_agent_id);
@@ -212,19 +226,7 @@ export default function RoomScreen({ route }: any) {
               onClose={() => setMentionPickerVisible(false)}
             />
 
-            {/* Replying indicators */}
-            {Object.keys(replyingAgents).length > 0 && (
-              <View style={styles.replyingBar}>
-                {Object.entries(replyingAgents).map(([id, { name }]) => (
-                  <View key={id} style={[styles.replyingAvatar, { backgroundColor: avatarColor(id) }]}>
-                    <Text style={styles.replyingAvatarText}>{name.charAt(0).toUpperCase()}</Text>
-                  </View>
-                ))}
-                <Text style={styles.replyingText}>
-                  {Object.values(replyingAgents).map(a => a.name).join('、')} 正在回复...
-                </Text>
-              </View>
-            )}
+            {/* Replying indicators moved to FlatList ListFooterComponent */}
 
             <View style={[styles.inputRow, { paddingBottom: Platform.OS === 'android' ? 12 : 8 }]}>
               <TextInput
